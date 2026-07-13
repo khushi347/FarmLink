@@ -8,11 +8,14 @@ const app=express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors());
+app.use(express.urlencoded({extended:false}));
 
 const authRoutes=require("./routes/authRoutes");
 const adminControllerRoutes=require("./routes/adminControllerRoutes")
+const webhookRoutes=require("./routes/webhookRoutes")
 
 app.use("/api/auth",authRoutes)
 app.use("/api/admin",adminControllerRoutes)
+app.use("/api/webhooks",webhookRoutes);
 
 module.exports=app;
