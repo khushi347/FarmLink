@@ -17,9 +17,11 @@ app.use(express.urlencoded({extended:false}));
 const authRoutes=require("./routes/authRoutes");
 const adminControllerRoutes=require("./routes/adminControllerRoutes")
 const webhookRoutes=require("./routes/webhookRoutes")
+const aiRoutes = require("./routes/aiRoutes");
 
-app.use("/api/auth",authRoutes)
-app.use("/api/admin",adminControllerRoutes)
+app.use("/api/auth",authRoutes);
+app.use("/api/admin",adminControllerRoutes);
 app.use("/api/webhooks",webhookRoutes);
+app.use("/api/ai",aiRoutes);
 
 module.exports=app;

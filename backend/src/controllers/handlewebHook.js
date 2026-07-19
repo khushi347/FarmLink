@@ -1,5 +1,6 @@
 const downloadAudio = require("../utils/downloadAudio");
 const { speechToText } = require("../services/speechService");
+const extractOrder  = require("../services/geminiService");
 
 const handlewebHook = async (req, res) => {
     try {
@@ -17,8 +18,9 @@ const handlewebHook = async (req, res) => {
             console.log("Voice saved at:", filePath);
 
             const transcript = await speechToText(filePath);
+            const order = await extractOrder(transcript);
 
-            console.log("Transcript:", transcript);
+            console.log(order);
         }
 
         res.sendStatus(200);
