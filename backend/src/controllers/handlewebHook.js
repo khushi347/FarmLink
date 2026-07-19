@@ -1,4 +1,4 @@
-const downloadMedia=require("../services/twilioService")
+const downloadAudio = require("../utils/downloadAudio");
 
 const handlewebHook=async(req,res)=>{
     try{
@@ -6,7 +6,7 @@ const handlewebHook=async(req,res)=>{
         if(req.body.MediaContentType0?.startsWith("audio")){
             const mediaUrl=req.body.MediaUrl0;
 
-            const filePath=await downloadMedia(
+            const filePath=await downloadAudio(
                 mediaUrl,
                 `${Date.now()}.ogg`
             );

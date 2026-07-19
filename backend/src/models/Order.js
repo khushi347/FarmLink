@@ -17,18 +17,15 @@ const orderSchema=new mongoose.Schema({
             "Water Tanker",
             "Machinery"
         ],
-        required:true
     },
 
     quantity:{
         type:Number,
-        required:true,
         min:1,
     },
 
     unit:{
         type:String,
-        required:true,
         trim:true
     },
 
@@ -47,7 +44,6 @@ const orderSchema=new mongoose.Schema({
 
     requestedDate:{
         type:Date,
-        required:true,
     },
 
     assignedShop:{
@@ -67,7 +63,12 @@ const orderSchema=new mongoose.Schema({
         default:"Pending"
     },
 
-    voiceTranscript:{
+    audioUrl:{
+        type:String,
+        required:true
+    },
+
+    transcript:{
         type:String,
         trim:true,
     },

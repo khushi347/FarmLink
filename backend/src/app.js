@@ -3,6 +3,10 @@ const cors=require("cors");
 const cookieParser=require("cookie-parser");
 
 const app=express();
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.originalUrl}`);
+    next();
+});
 
 //middlewares
 app.use(express.json());
