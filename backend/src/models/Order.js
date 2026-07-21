@@ -7,26 +7,28 @@ const orderSchema=new mongoose.Schema({
         required:true
     },
 
-    service:{
-        type:String,
-        enum:[
-            "Seeds",
-            "Fertilizer",
-            "Pesticides",
-            "Tractor Rental",
-            "Water Tanker",
-            "Machinery"
-        ],
-    },
-
-    quantity:{
-        type:Number,
-        min:1,
-    },
-
-    unit:{
-        type:String,
-        trim:true
+    products: {
+    type: [{
+        name: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        quantity: {
+            type: Number,
+            required: true,
+            min: 1
+        },
+        unit: {
+            type: String,
+            trim: true
+        }
+    }],
+    required: true,
+    validate: {
+        validator: (products) => products.length > 0,
+        message: "Order must contain at least one product."
+    }
     },
 
     location:{
@@ -43,7 +45,8 @@ const orderSchema=new mongoose.Schema({
     },
 
     requestedDate:{
-        type:Date,
+        type:String,
+        default:null
     },
 
     assignedShop:{
@@ -56,6 +59,7 @@ const orderSchema=new mongoose.Schema({
         type:String,
         enum:[
             "Pending",
+            "Grouped",
             "Accepted",
             "Completed",
             "Cancelled"
