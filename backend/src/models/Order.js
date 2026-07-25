@@ -6,6 +6,19 @@ const orderSchema=new mongoose.Schema({
         ref:"Farmer",
         required:true
     },
+    
+    serviceType:{
+        type:String,
+        enum:[
+            "Seeds",
+            "Pesticides",
+            "Tractor Rental",
+            "Water Tanker",
+            "Machinery",
+            "Fertilizer"
+        ],
+        required:true
+    },
 
     products: {
     type: [{
@@ -45,7 +58,7 @@ const orderSchema=new mongoose.Schema({
     },
 
     requestedDate:{
-        type:String,
+        type:Date,
         default:null
     },
 
@@ -76,6 +89,12 @@ const orderSchema=new mongoose.Schema({
         type:String,
         trim:true,
     },
+
+    tripBlock:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"TripBlock",
+        default:null
+    }
 },
 {
     timestamps:true

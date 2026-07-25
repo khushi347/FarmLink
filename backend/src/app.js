@@ -19,11 +19,13 @@ const adminControllerRoutes=require("./routes/adminControllerRoutes")
 const webhookRoutes=require("./routes/webhookRoutes")
 const aiRoutes = require("./routes/aiRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const groupRoutes=require("./routes/groupingRoutes")
 
 app.use("/api/auth",authRoutes);
 app.use("/api/admin",adminControllerRoutes);
 app.use("/api/webhooks",webhookRoutes);
 app.use("/api/ai",aiRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/group",groupRoutes);
 
 module.exports=app;

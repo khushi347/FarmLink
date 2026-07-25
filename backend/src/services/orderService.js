@@ -8,7 +8,11 @@ const buildOrder = async ({
     location
 }) => {
 
-    const { products, deliveryDate } = aiData;
+    if(!aiData){
+        throw new Error("AI data is missing");
+    }
+
+    const { products, deliveryDate, serviceType} = aiData;
 
     if (!farmerId) {
         throw new Error("Farmer ID is required.");
@@ -35,13 +39,14 @@ const buildOrder = async ({
     }
 
     const orderData = {
-        farmer: farmerId,
-        products,
-        location,
-        requestedDate: deliveryDate || null,
-        transcript,
-        audioUrl,
-        status: "Pending"
+    farmer: farmerId,
+    serviceType,
+    products,
+    location,
+    requestedDate: deliveryDate ? new Date(deliveryDate) : null,
+    transcript,
+    audioUrl,
+    status: "Pending"
     };
 
     const order = await Order.create(orderData);

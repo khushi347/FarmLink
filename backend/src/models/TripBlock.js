@@ -6,11 +6,10 @@ const tripBlockSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
-        required: true,
       },
     ],
 
-    service: {
+    serviceType: {
       type: String,
       enum: [
         "Seeds",
@@ -51,7 +50,7 @@ const tripBlockSchema = new mongoose.Schema(
         type:[Number],
         required:true
       }
-    },
+    }
   },
   {
     timestamps: true,
