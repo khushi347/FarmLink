@@ -21,6 +21,7 @@ const aiRoutes = require("./routes/aiRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const groupRoutes=require("./routes/groupingRoutes")
 const claimRoutes=require("./routes/TripRoutes");
+const shopRoutes=require("./routes/shopRoutes");
 
 app.use("/api/auth",authRoutes);
 app.use("/api/admin",adminControllerRoutes);
@@ -29,5 +30,6 @@ app.use("/api/ai",aiRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/group",groupRoutes);
 app.use("/api/trip-blocks",claimRoutes);
+app.use("/api/shop",shopRoutes);
 
 module.exports=app;
