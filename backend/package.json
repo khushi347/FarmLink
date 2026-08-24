@@ -22,6 +22,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.3",
     "sarvamai": "^1.1.7",
+    "socket.io": "^4.8.3",
     "twilio": "^6.0.2"
   },
   "devDependencies": {

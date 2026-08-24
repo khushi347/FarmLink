@@ -1,4 +1,5 @@
 const buildOrder = require("../services/orderService");
+const eventBus=require("../events/eventBus");
 
 const createOrder = async (req, res) => {
     try {
@@ -18,6 +19,8 @@ const createOrder = async (req, res) => {
             audioUrl,
             location
         });
+
+        eventBus.emit("new_order",order);
 
         res.status(201).json({
             success: true,
