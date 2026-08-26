@@ -1,5 +1,6 @@
 const buildOrder = require("../services/orderService");
 const eventBus=require("../events/eventBus");
+const findShopsByService=require("../services/shopService");
 
 const createOrder = async (req, res) => {
     try {
@@ -20,7 +21,14 @@ const createOrder = async (req, res) => {
             location
         });
 
-        eventBus.emit("new_order",order);
+        const {serviceType}=aiData;
+
+        const shopIds=await findShopsByService(serviceType);
+
+        eventBus.emit("new_order",{
+            order,
+            shopIds}
+        );
 
         res.status(201).json({
             success: true,

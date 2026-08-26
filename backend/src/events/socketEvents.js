@@ -25,8 +25,10 @@ const setupSocketEvents=(io)=>{
 
     })
 
-    eventBus.on("new_order",order=>{
-        io.emit("new_order",order);
+    eventBus.on("new_order",({order,shopIds})=>{
+        shopIds.forEach((shopId)=>{
+            io.to(`shop:${shopId}`).emit("new_order", order);
+        })
     })
 
 
