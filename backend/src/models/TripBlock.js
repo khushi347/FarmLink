@@ -39,6 +39,11 @@ const tripBlockSchema = new mongoose.Schema(
       default: "OPEN",
     },
 
+    completedAt: {
+    type: Date,
+    default: null
+    },
+
     claimedAt:{
       type:Date,
       default:null
