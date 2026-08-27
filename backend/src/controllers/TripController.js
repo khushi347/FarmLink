@@ -1,4 +1,5 @@
 const claimTripService=require("../services/claimTripService");
+const eventBus=require("../events/eventBus");
 
 const claimTrip=async(req,res)=>{
     try{
@@ -7,6 +8,11 @@ const claimTrip=async(req,res)=>{
 
         const trip=await claimTripService(tripId,shopId);
 
+            eventBus.emit("trip_claimed",{
+                tripId:trip._id,
+                shopId:trip.assignedShop
+            })
+    
         return res.status(200).json({
             success:true,
             message:"Trip claimed successfully",

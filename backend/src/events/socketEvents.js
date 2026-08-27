@@ -46,6 +46,19 @@ const setupSocketEvents=(io)=>{
     io.to("admin").emit("trip_created", tripBlock);
     });
 
+    eventBus.on("trip_claimed", ({ tripId, shopId }) => {
+
+    io.to(`shop:${shopId}`).emit("trip_claimed", {
+        tripId
+    });
+
+    io.to("admin").emit("trip_claimed", {
+        tripId,
+        shopId
+    });
+
+});
+
 
 }
 module.exports=setupSocketEvents;
