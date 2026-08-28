@@ -9,6 +9,32 @@ const findShopsByService = require("../services/shopService");
 
 const normalizePhone = (phone = "") => String(phone).replace(/\D/g, "");
 
+const getLocalizedMessage = (language = "English", type = "location") => {
+    const normalized = String(language || "English").toLowerCase();
+
+    if (type === "location") {
+        if (normalized.includes("hindi") || normalized.includes("hi")) {
+            return "आर्डर की जानकारी मिल गई है। कृपया अपना WhatsApp स्थान साझा करें 📍";
+        }
+
+        if (normalized.includes("hinglish") || normalized.includes("mix") || normalized.includes("mixed")) {
+            return "Order details received. Please share your WhatsApp location 📍";
+        }
+
+        return "Order details received. Please share your WhatsApp location 📍";
+    }
+
+    if (normalized.includes("hindi") || normalized.includes("hi")) {
+        return "आपका ऑर्डर सफलतापूर्वक बन गया है। धन्यवाद! 🌱";
+    }
+
+    if (normalized.includes("hinglish") || normalized.includes("mix") || normalized.includes("mixed")) {
+        return "Your order has been created successfully. Thank you! 🌱";
+    }
+
+    return "Your order has been created successfully. Thank you! 🌱";
+};
+
 const findOrCreateFarmerByWhatsApp = async (fromNumber) => {
     const raw = typeof fromNumber === "string" ? fromNumber.trim() : "";
     const cleaned = normalizePhone(raw);
@@ -68,7 +94,7 @@ const mapLocation = (body = {}) => {
     };
 };
 
-const savePendingOrder = async ({ farmerId, whatsappNumber, source, transcript, aiData, audioUrl }) => {
+const savePendingOrder = async ({ farmerId, whatsappNumber, source, transcript, aiData, audioUrl, language }) => {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     const pending = await PendingWhatsAppOrder.findOneAndUpdate(
@@ -83,6 +109,7 @@ const savePendingOrder = async ({ farmerId, whatsappNumber, source, transcript, 
                 source,
                 transcript,
                 aiData,
+                language,
                 audioUrl,
                 status: "WAITING_FOR_LOCATION",
                 expiresAt,
@@ -144,10 +171,11 @@ const handlewebHook = async (req, res) => {
             await PendingWhatsAppOrder.deleteOne({ _id: pending._id });
             console.log("13. pending deletion completed");
 
+            const successMessage = getLocalizedMessage(pending.language || "English", "success");
             res.type("text/xml");
             return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Your order has been created successfully. Thank you! 🌱</Message>
+  <Message>${successMessage}</Message>
 </Response>`);
         }
 
@@ -203,14 +231,16 @@ const handlewebHook = async (req, res) => {
                 deliveryDate: aiData.deliveryDate ?? aiData.requestedDate ?? null,
             },
             audioUrl,
+            language: aiData.language || "English",
         });
         console.log("25. pending save completed");
 
         console.log("26. sending response");
+        const locationMessage = getLocalizedMessage(aiData.language || "English", "location");
         res.type("text/xml");
         return res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Order details received. Please share your WhatsApp location 📍</Message>
+  <Message>${locationMessage}</Message>
 </Response>`);
 
     } catch (error) {

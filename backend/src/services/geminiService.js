@@ -19,7 +19,11 @@ async function extractOrder(transcript) {
             .replace(/```/g, "")
             .trim();
 
-        return JSON.parse(cleaned);
+        const parsed = JSON.parse(cleaned);
+        return {
+            ...parsed,
+            language: parsed.language || "English",
+        };
 
     } catch (error) {
         console.error("Gemini Error:", error);

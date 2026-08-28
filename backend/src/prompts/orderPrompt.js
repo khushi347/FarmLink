@@ -46,15 +46,21 @@ Examples:
 14. If quantity is not mentioned, use null.
 15. If unit is not mentioned, use null.
 16. If no products are found, return an empty array.
-17. Determine the serviceType based on the farmer's primary request.
-18. serviceType must be one of:
+17. Determine the language of the farmer's message and return it as a string in the field "language".
+18. Supported language labels include:
+    - Hindi
+    - English
+    - Hinglish
+    - Other
+19. Determine the serviceType based on the farmer's primary request.
+20. serviceType must be one of:
     - Seeds
     - Fertilizer
     - Pesticides
     - Tractor Rental
     - Water Tanker
     - Machinery
-19. If the request does not match any category, return null.
+21. If the request does not match any category, return null.
 
 ========================
 SUPPORTED UNITS
@@ -81,6 +87,7 @@ OUTPUT FORMAT
 ========================
 
 {
+  "language": "",
   "serviceType": "",
   "products": [
     {
