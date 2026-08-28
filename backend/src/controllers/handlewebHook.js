@@ -144,11 +144,11 @@ const handlewebHook = async (req, res) => {
             await PendingWhatsAppOrder.deleteOne({ _id: pending._id });
             console.log("13. pending deletion completed");
 
-            return res.status(200).json({
-                success: true,
-                message: "Order created successfully",
-                order,
-            });
+            res.type("text/xml");
+            return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Your order has been created successfully. Thank you! 🌱</Message>
+</Response>`);
         }
 
         console.log("14. text/voice branch entered");
@@ -207,10 +207,11 @@ const handlewebHook = async (req, res) => {
         console.log("25. pending save completed");
 
         console.log("26. sending response");
-        return res.status(200).json({
-            success: true,
-            message: "Order details received. Please share your WhatsApp location to complete the order.",
-        });
+        res.type("text/xml");
+        return res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Order details received. Please share your WhatsApp location 📍</Message>
+</Response>`);
 
     } catch (error) {
         console.error("WhatsApp webhook error:", error);

@@ -82,7 +82,7 @@ const orderSchema=new mongoose.Schema({
 
     audioUrl:{
         type:String,
-        required:true
+        default:null
     },
 
     transcript:{

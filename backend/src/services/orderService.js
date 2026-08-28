@@ -30,8 +30,12 @@ const buildOrder = async ({
         throw new Error("Valid location is required.");
     }
 
-    if (!audioUrl) {
-        throw new Error("Audio URL is required.");
+    if (audioUrl === undefined || audioUrl === null) {
+        if (transcript && transcript.trim() !== "") {
+            // Text-based WhatsApp orders are valid without an audio URL.
+        } else {
+            throw new Error("Transcript is required.");
+        }
     }
 
     if (!transcript || transcript.trim() === "") {
