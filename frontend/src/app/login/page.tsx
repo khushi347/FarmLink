@@ -182,7 +182,7 @@ export default function LoginPage() {
               that <span className="italic font-normal text-[#c26d40]">grow</span> with the shops that serve.
             </h2>
             <p className="text-base leading-relaxed text-[#3a3f47] font-light max-w-md reveal-3">
-              We coordinate local harvest collections, independent retail shops, and delivery fleets through simple WhatsApp workflows to make agricultural logistics fast, fair, and reliable.
+              We coordinate local harvest collections, independent retail shops, and TripBlocks through simple WhatsApp workflows to make agricultural logistics fast, fair, and reliable.
             </p>
           </div>
 
@@ -213,7 +213,7 @@ export default function LoginPage() {
                 Sign In
               </h1>
               <p className="text-xs text-stone-500 font-light tracking-wide leading-relaxed">
-                Log in to coordinate your crop deliveries, manage store orders, or assign driver trips.
+                Log in to coordinate WhatsApp intakes, manage store orders, and track TripBlocks.
               </p>
             </div>
 
