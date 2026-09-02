@@ -95,3 +95,21 @@ export const authApi = {
       method: "POST",
     }, token),
 };
+
+export const mapApi = {
+  /**
+   * Fetch all geographic data (Shops, Orders, TripBlocks, Stats).
+   */
+  getMapData: (params?: { serviceType?: string; status?: string }, token?: string) => {
+    const query = new URLSearchParams();
+    if (params?.serviceType && params.serviceType !== "ALL") {
+      query.set("serviceType", params.serviceType);
+    }
+    if (params?.status && params.status !== "ALL") {
+      query.set("status", params.status);
+    }
+    const queryString = query.toString() ? `?${query.toString()}` : "";
+    return request<import("@/types/map").MapDataResponse>(`/map/data${queryString}`, {}, token);
+  },
+};
+

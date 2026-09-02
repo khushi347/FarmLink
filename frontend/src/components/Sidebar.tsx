@@ -8,17 +8,16 @@ import {
   ShoppingBagIcon,
   TruckIcon,
   LogOutIcon,
-  BrainIcon,
-  WhatsAppIcon,
   TripBlockIcon,
   StoreIcon,
   SettingsIcon,
   XIcon,
+  MapPinIcon,
 } from "./Icons";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["600", "700"],
   display: "swap",
 });
 
@@ -35,181 +34,227 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const NAV_ITEMS = [
-  { id: "overview",    label: "Overview",        Icon: DashboardIcon,  badge: null  },
-  { id: "intake",      label: "WhatsApp Intake",  Icon: WhatsAppIcon,   badge: "18"  },
-  { id: "orders",      label: "Orders",           Icon: ShoppingBagIcon,badge: "7"   },
-  { id: "tripblocks",  label: "TripBlocks",       Icon: TripBlockIcon,  badge: "4"   },
-  { id: "shops",       label: "Shops",            Icon: StoreIcon,      badge: null  },
-  { id: "delivery",    label: "Delivery",         Icon: TruckIcon,      badge: "3"   },
-  { id: "ai-insights", label: "AI Insights",      Icon: BrainIcon,      badge: null  },
+interface NavGroup {
+  groupLabel: string;
+  items: {
+    id: string;
+    label: string;
+    Icon: React.ComponentType<{ size?: number }>;
+    badge?: string | null;
+    isLive?: boolean;
+  }[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    groupLabel: "Operations",
+    items: [
+      { id: "overview",   label: "Overview",   Icon: DashboardIcon,  badge: null },
+      { id: "orders",     label: "Orders",     Icon: ShoppingBagIcon,badge: "7" },
+      { id: "tripblocks", label: "TripBlocks", Icon: TripBlockIcon,  badge: "4" },
+    ],
+  },
+  {
+    groupLabel: "Network & Logistics",
+    items: [
+      { id: "shops",    label: "Shops",    Icon: StoreIcon,  badge: "3" },
+      { id: "delivery", label: "Delivery", Icon: TruckIcon,  badge: "3" },
+      { id: "map",      label: "Live Map", Icon: MapPinIcon, badge: "Live", isLive: true },
+    ],
+  },
+  {
+    groupLabel: "System",
+    items: [
+      { id: "settings", label: "Settings", Icon: SettingsIcon, badge: null },
+    ],
+  },
 ];
 
 function getInitials(name: string) {
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
-export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({
+  activeTab,
+  setActiveTab,
+  isOpen,
+  onClose,
+}: SidebarProps) {
   const { user, logout } = useAuth();
   if (!user) return null;
 
-  const handleTabClick = (id: string) => { setActiveTab(id); onClose(); };
+  const handleTabClick = (id: string) => {
+    setActiveTab(id);
+    onClose();
+  };
 
-  // Sidebar uses the same warm dark tone as the login page's dark elements (#2c3e50)
   const content = (
     <div
       className={`flex flex-col h-full select-none ${jakarta.className}`}
-      style={{ background: "#1e2530", borderRight: "1px solid rgba(255,255,255,0.05)" }}
+      style={{
+        background: "linear-gradient(180deg, #f5f2ec 0%, #eee9df 100%)",
+        borderRight: "1px solid #d8d2c7",
+      }}
     >
-      {/* ── WORDMARK ── */}
+      {/* ── WORDMARK HEADER ── */}
       <div
-        className="h-16 px-6 flex items-center justify-between shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+        className="h-16 px-5 flex items-center justify-between shrink-0"
+        style={{ borderBottom: "1px solid #e8e4dc" }}
       >
-        {/* Leaf + FARMLINK — mirrors the login page logo */}
         <div className="flex items-center gap-2.5">
-          <div
-            className="h-7 w-7 rounded-md flex items-center justify-center shrink-0"
-            style={{ background: "rgba(194,109,64,0.15)", border: "1px solid rgba(194,109,64,0.25)" }}
-          >
-            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" style={{ color: "#c26d40" }}>
-              <path d="M3 13C3 7 8 3 13 3C13 8 8 13 3 13Z" fill="currentColor" fillOpacity="0.9" />
-              <path d="M3 13L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+          <div>
+            <span
+              className={`${cormorant.className} text-[21px] font-bold tracking-[0.14em] text-[#1c1e24] block leading-none`}
+            >
+              FARMLINK
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-[#8c8e96] block mt-0.5">
+              Cooperative Hub
+            </span>
           </div>
-          <span className={`${cormorant.className} text-[22px] font-bold tracking-widest text-white`}>
-            FARMLINK
-          </span>
         </div>
 
         <button
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="lg:hidden p-1.5 rounded-md transition-colors"
-          style={{ color: "rgba(255,255,255,0.35)" }}
+          className="lg:hidden p-1.5 rounded-md transition-colors text-[#8c8e96] hover:text-[#1c1e24]"
         >
           <XIcon size={16} />
         </button>
       </div>
 
-      {/* ── NAVIGATION ── */}
-      <nav className="flex-1 px-3 py-5 overflow-y-auto">
-        <p
-          className="px-3 mb-3 text-[9px] font-bold tracking-[0.18em] uppercase"
-          style={{ color: "rgba(255,255,255,0.25)" }}
-        >
-          Workspace
-        </p>
+      {/* ── NAVIGATION GROUPS ── */}
+      <nav className="flex-1 px-3.5 py-5 overflow-y-auto space-y-5">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.groupLabel} className="space-y-1">
+            <p className="px-3 text-[9.5px] font-bold tracking-[0.16em] uppercase text-[#8c8e96]">
+              {group.groupLabel}
+            </p>
 
-        <div className="space-y-0.5">
-          {NAV_ITEMS.map(({ id, label, Icon, badge }) => {
-            const active = activeTab === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => handleTabClick(id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-150"
-                style={{
-                  color:      active ? "#ffffff" : "rgba(255,255,255,0.45)",
-                  background: active ? "rgba(194,109,64,0.15)" : "transparent",
-                  border:     active ? "1px solid rgba(194,109,64,0.22)" : "1px solid transparent",
-                }}
-              >
-                <span style={{ color: active ? "#c26d40" : "rgba(255,255,255,0.3)" }}>
-                  <Icon size={15} />
-                </span>
-                <span className="flex-1 text-left tracking-wide">{label}</span>
-                {badge && (
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+            <div className="space-y-0.5">
+              {group.items.map(({ id, label, Icon, badge, isLive }) => {
+                const active = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => handleTabClick(id)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 relative group"
                     style={{
-                      background: active ? "rgba(194,109,64,0.2)" : "rgba(255,255,255,0.08)",
-                      color:      active ? "#e8986a" : "rgba(255,255,255,0.4)",
+                      color: active ? "#1c1e24" : "#5a5f6b",
+                      background: active ? "#ffffff" : "transparent",
+                      border: active ? "1px solid #e2ddd5" : "1px solid transparent",
+                      boxShadow: active
+                        ? "0 1px 3px rgba(28, 30, 36, 0.04), 0 4px 12px rgba(194, 109, 64, 0.04)"
+                        : "none",
                     }}
                   >
-                    {badge}
-                  </span>
-                )}
-                {active && (
-                  <span
-                    className="h-1.5 w-1.5 rounded-full shrink-0"
-                    style={{ background: "#c26d40" }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
+                    {/* Active Left Accent Pill */}
+                    {active && (
+                      <span
+                        className="absolute left-1 top-2 bottom-2 w-1 rounded-full"
+                        style={{ background: "#c26d40" }}
+                      />
+                    )}
+
+                    <span
+                      className="transition-colors duration-150 pl-0.5"
+                      style={{
+                        color: active ? "#c26d40" : "#8c8e96",
+                      }}
+                    >
+                      <Icon size={16} />
+                    </span>
+
+                    <span className="flex-1 text-left tracking-wide font-medium">
+                      {label}
+                    </span>
+
+                    {badge && (
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center gap-1 ${
+                          isLive
+                            ? "bg-[#eef7f2] text-[#1f6e48] border border-[#a8d8bc]"
+                            : active
+                            ? "bg-[#fff0e5] text-[#b84a0a] border border-[#f5c4a0]"
+                            : "bg-[#ece8e0] text-[#7a7f8b]"
+                        }`}
+                      >
+                        {isLive && (
+                          <span
+                            className="h-1.5 w-1.5 rounded-full live-dot"
+                            style={{ background: "#3faa6e" }}
+                          />
+                        )}
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* ── PROFILE FOOTER ── */}
+      {/* ── PROFILE FOOTER CARD ── */}
       <div
-        className="px-3 pb-4 pt-3 shrink-0 space-y-3"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+        className="p-3.5 shrink-0 space-y-2.5"
+        style={{ borderTop: "1px solid #e8e4dc" }}
       >
-        {/* User pill */}
         <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
-          }}
+          className="flex items-center gap-3 p-2.5 rounded-xl bg-white shadow-3xs"
+          style={{ border: "1px solid #e5e1da" }}
         >
           <div
-            className="h-7 w-7 rounded-full flex items-center justify-center font-extrabold text-[11px] shrink-0"
+            className="h-8 w-8 rounded-full flex items-center justify-center font-extrabold text-xs shrink-0"
             style={{
-              background: "rgba(194,109,64,0.18)",
-              color: "#e8986a",
-              border: "1px solid rgba(194,109,64,0.25)",
+              background: "#faf2ed",
+              color: "#c26d40",
+              border: "1px solid #f0d8ca",
             }}
           >
             {getInitials(user.name)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold truncate leading-tight" style={{ color: "rgba(255,255,255,0.85)" }}>
+            <p className="text-xs font-bold truncate text-[#1c1e24] leading-tight">
               {user.name}
             </p>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-wider mt-0.5"
-              style={{ color: "#c26d40" }}
-            >
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#c26d40] mt-0.5">
               {user.role === "admin" ? "Coordinator" : "Retail Partner"}
             </p>
           </div>
-          {/* Online dot */}
-          <span className="h-2 w-2 rounded-full live-dot" style={{ background: "#5fbc82" }} />
+          <span
+            className="h-2 w-2 rounded-full live-dot"
+            style={{ background: "#3faa6e" }}
+            title="Operational Online"
+          />
         </div>
 
-        {/* Action row */}
+        {/* Quick action buttons */}
         <div className="flex gap-1.5">
-          {[
-            { Icon: SettingsIcon, label: "Settings", onClick: () => {} },
-            { Icon: LogOutIcon,   label: "Sign Out",  onClick: logout },
-          ].map(({ Icon, label, onClick }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={onClick}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold transition-colors"
-              style={{
-                color: "rgba(255,255,255,0.35)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = label === "Sign Out" ? "#e8986a" : "rgba(255,255,255,0.75)";
-                (e.currentTarget as HTMLButtonElement).style.background = label === "Sign Out" ? "rgba(194,109,64,0.1)" : "rgba(255,255,255,0.05)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.35)";
-                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-              }}
-            >
-              <Icon size={12} />
-              <span>{label}</span>
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => handleTabClick("settings")}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-[#5a5f6b] hover:text-[#1c1e24] bg-white/70 hover:bg-white border border-[#e5e1da] transition-all"
+          >
+            <SettingsIcon size={12} />
+            <span>Settings</span>
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-[#8c8e96] hover:text-[#b84a0a] bg-white/70 hover:bg-[#fff4ec] border border-[#e5e1da] hover:border-[#f5c4a0] transition-all"
+          >
+            <LogOutIcon size={12} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
     </div>
@@ -217,20 +262,19 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
 
   return (
     <>
-      {/* Desktop */}
+      {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-60 h-screen sticky top-0 shrink-0">
         {content}
       </aside>
 
-      {/* Mobile drawer */}
+      {/* Mobile Drawer */}
       <div
         className={`lg:hidden fixed inset-0 z-50 transition-all duration-300 ${
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
         <div
-          className="absolute inset-0 backdrop-blur-sm"
-          style={{ background: "rgba(28,30,36,0.55)" }}
+          className="absolute inset-0 backdrop-blur-sm bg-[#1c1e24]/40"
           onClick={onClose}
         />
         <div

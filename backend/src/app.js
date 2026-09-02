@@ -22,6 +22,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const groupRoutes=require("./routes/groupingRoutes")
 const claimRoutes=require("./routes/TripRoutes");
 const shopRoutes=require("./routes/shopRoutes");
+const mapRoutes=require("./routes/mapRoutes");
 
 app.use("/api/auth",authRoutes);
 app.use("/api/admin",adminControllerRoutes);
@@ -31,5 +32,6 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/group",groupRoutes);
 app.use("/api/trip-blocks",claimRoutes);
 app.use("/api/shop",shopRoutes);
+app.use("/api/map",mapRoutes);
 
 module.exports=app;

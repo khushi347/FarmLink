@@ -200,3 +200,166 @@ button, input, select, textarea { font: inherit; }
   border-color: var(--border-subtle);
   box-shadow: 0 1px 3px rgba(28, 30, 36, 0.06);
 }
+
+/* ─── LEAFLET MAP CUSTOM STYLING ────────────────────────── */
+@import "leaflet/dist/leaflet.css";
+
+.farmlink-map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #f2efe9;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.farmlink-map-container .leaflet-tile-pane {
+  filter: contrast(0.97) saturate(0.92);
+}
+
+/* Custom map marker styles */
+.farmlink-marker-shop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.farmlink-marker-shop .marker-inner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #c26d40;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 10px rgba(194, 109, 64, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease;
+}
+
+.farmlink-marker-shop:hover .marker-inner {
+  transform: scale(1.15);
+}
+
+.farmlink-marker-order {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.farmlink-marker-order .marker-inner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #d48b28;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(212, 139, 40, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  transition: transform 0.18s ease;
+}
+
+.farmlink-marker-order.grouped .marker-inner {
+  background: #426890;
+  box-shadow: 0 2px 8px rgba(66, 104, 144, 0.35);
+}
+
+.farmlink-marker-trip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.farmlink-marker-trip .marker-inner {
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: #1c1e24;
+  color: #ffffff;
+  border: 2px solid #c26d40;
+  box-shadow: 0 4px 14px rgba(28, 30, 36, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: transform 0.18s ease;
+}
+
+.farmlink-marker-trip:hover .marker-inner {
+  transform: scale(1.08);
+}
+
+.farmlink-marker-pulse {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(194, 109, 64, 0.25);
+  animation: markerPulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes markerPulse {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Custom Leaflet popup */
+.farmlink-map-container .leaflet-popup-content-wrapper {
+  background: #ffffff;
+  color: #1c1e24;
+  border-radius: 10px;
+  border: 1px solid #e5e1da;
+  box-shadow: 0 4px 20px rgba(28, 30, 36, 0.12);
+  padding: 0;
+  overflow: hidden;
+}
+
+.farmlink-map-container .leaflet-popup-content {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.farmlink-map-container .leaflet-popup-tip {
+  background: #ffffff;
+  border: 1px solid #e5e1da;
+}
+
+.farmlink-map-container .leaflet-control-zoom {
+  border: 1px solid #e5e1da !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(28, 30, 36, 0.08) !important;
+}
+
+.farmlink-map-container .leaflet-control-zoom a {
+  background: #ffffff !important;
+  color: #1c1e24 !important;
+  border-bottom: 1px solid #e5e1da !important;
+  transition: background 0.15s ease;
+}
+
+.farmlink-map-container .leaflet-control-zoom a:hover {
+  background: #faf8f5 !important;
+  color: #c26d40 !important;
+}
+
+.farmlink-map-container .leaflet-control-attribution {
+  background: rgba(250, 248, 245, 0.85) !important;
+  color: #8c8e96 !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  border-top-left-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+

@@ -16,7 +16,10 @@ import {
   AlertTriangleIcon,
   ClockIcon,
   CheckIcon,
+  MapPinIcon,
 } from "@/components/Icons";
+import MapView from "@/components/map/MapView";
+import SettingsSection from "@/components/SettingsSection";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -340,19 +343,17 @@ export default function Home() {
                 Good morning, FarmLink
               </h1>
               <p className="text-xs font-light mt-0.5" style={{ color: "#8c8e96" }}>
-                Here's what's happening across today's WhatsApp intakes, orders, and TripBlocks.
+                Operational hub pulse across incoming orders, TripBlocks, and deliveries.
               </p>
             </div>
 
             {/* Compact workflow pipeline */}
             <div className="hidden xl:flex items-center gap-2">
               {[
-                { label:"WhatsApp", n:liveCount, color:"#a0510a", bg:"#fff8f2", border:"#f5d5b8" },
-                { label:"AI Parse", n:16,        color:"#3a4fa0", bg:"#f2f4ff", border:"#c8d0f5" },
-                { label:"Orders",   n:12,        color:"#8a5a00", bg:"#fdf5e8", border:"#f5cc7a" },
-                { label:"TripBlocks",n:6,        color:"#b84a0a", bg:"#fff4ec", border:"#f5c4a0" },
-                { label:"Claimed",  n:6,         color:"#1f6e48", bg:"#eef7f2", border:"#a8d8bc" },
-                { label:"Delivery", n:3,         color:"#234e72", bg:"#edf4fb", border:"#a8c8e8" },
+                { label:"Orders",     n:7, color:"#8a5a00", bg:"#fdf5e8", border:"#f5cc7a" },
+                { label:"TripBlocks", n:4, color:"#b84a0a", bg:"#fff4ec", border:"#f5c4a0" },
+                { label:"Claimed",    n:6, color:"#1f6e48", bg:"#eef7f2", border:"#a8d8bc" },
+                { label:"Delivery",   n:3, color:"#234e72", bg:"#edf4fb", border:"#a8c8e8" },
               ].map((s, i, arr) => (
                 <React.Fragment key={s.label}>
                   <div
@@ -462,7 +463,7 @@ export default function Home() {
                         </p>
                       </div>
                       <div className="pill-group">
-                        {["ALL", "WHATSAPP", "ORDERS", "TRIPBLOCKS"].map((c) => (
+                        {["ALL", "ORDERS", "TRIPBLOCKS", "SHOPS"].map((c) => (
                           <button
                             key={c}
                             type="button"
@@ -673,147 +674,45 @@ export default function Home() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── WHATSAPP INTAKE ── */}
-            {activeTab === "intake" && (
-              <div className="page-enter space-y-5">
-                <div className="flex items-start justify-between gap-4">
-                  <SectionHeading
-                    title="WhatsApp Intake"
-                    subtitle="Incoming requests structured by FarmLink AI — tractor services, seeds, fertilizers, pesticides, and grocery supplies."
-                  />
-                  <div
-                    className="flex items-center gap-2 px-3 py-2 rounded-full text-[11px] font-bold shrink-0"
-                    style={{ background: "#fff8f2", color: "#a0510a", border: "1px solid #f5d5b8" }}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full live-dot" style={{ background: "#c26d40" }} />
-                    {liveCount} processed today
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {intakes.map((req, idx) => (
-                    <div
-                      key={req.id}
-                      className="warm-card card-enter overflow-hidden"
-                      style={{ animationDelay: `${idx * 70}ms` }}
-                    >
-                      {/* Card header */}
+                    {/* GEOGRAPHIC MAP PREVIEW */}
+                    <div className="warm-card overflow-hidden">
                       <div
-                        className="px-5 py-4 flex flex-wrap items-center justify-between gap-3"
-                        style={{ borderBottom: "1px solid #e5e1da", background: "#faf8f5" }}
+                        className="px-5 py-3.5 flex items-center justify-between"
+                        style={{ borderBottom: "1px solid #e5e1da" }}
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-extrabold"
-                            style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
-                          >
-                            {req.sender.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold" style={{ color: "#1c1e24" }}>{req.sender}</p>
-                            <p className="text-[11px] font-light" style={{ color: "#8c8e96" }}>
-                              {req.phone} · {req.timestamp}
-                            </p>
-                          </div>
-                        </div>
                         <div className="flex items-center gap-2">
-                          <CategoryTag cat={req.category} />
-                          <StatusBadge status={req.aiStatus} />
+                          <MapPinIcon size={14} style={{ color: "#c26d40" }} />
+                          <h3 className="text-xs font-bold" style={{ color: "#1c1e24" }}>Geographic Coverage</h3>
                         </div>
-                      </div>
-
-                      <div className="p-5 space-y-4">
-                        {/* WhatsApp message bubble */}
-                        <div className="flex items-start gap-3">
-                          <div
-                            className="h-5 w-5 rounded-full shrink-0 mt-0.5 flex items-center justify-center"
-                            style={{ background: "#25D366" }}
-                          >
-                            <WhatsAppIcon size={11} style={{ color: "#ffffff" }} />
-                          </div>
-                          <div
-                            className="flex-1 rounded-xl rounded-tl-none px-4 py-3 text-xs font-light italic leading-relaxed"
-                            style={{ background: "#f0fdf0", border: "1px solid #c8eacc", color: "#1c3a1c" }}
-                          >
-                            "{req.rawMessage}"
-                          </div>
-                        </div>
-
-                        {/* AI structured output */}
-                        <div
-                          className="rounded-xl p-4 space-y-3"
-                          style={{ background: "#f5f6ff", border: "1px solid #c8d0f5" }}
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: "#3a4fa0" }}>
-                              <SparklesIcon size={11} style={{ color: "#3a4fa0" }} />
-                              AI Interpretation
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="h-1 w-16 rounded-full overflow-hidden" style={{ background: "#c8d0f5" }}>
-                                <div
-                                  className="h-full rounded-full progress-bar"
-                                  style={{ width: `${req.aiConfidence}%`, background: req.aiConfidence >= 90 ? "#426890" : "#d4a040" }}
-                                />
-                              </div>
-                              <span className="text-[10px] font-bold" style={{ color: req.aiConfidence >= 90 ? "#3a4fa0" : "#7a5d00" }}>
-                                {req.aiConfidence}%
-                              </span>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {[
-                              { label:"Parsed Item",     value:req.parsed.item },
-                              { label:"Quantity / Scope",value:req.parsed.qty },
-                              { label:"Location",        value:req.parsed.location },
-                              { label:"Timing",          value:req.parsed.timing },
-                            ].map((f) => (
-                              <div key={f.label}>
-                                <p className="text-[9px] font-extrabold uppercase tracking-widest mb-0.5" style={{ color: "#426890" }}>{f.label}</p>
-                                <p className="text-xs font-semibold leading-snug" style={{ color: "#1c1e24" }}>{f.value}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center justify-between pt-1">
-                          {req.aiStatus === "NEEDS REVIEW" ? (
-                            <span className="text-[11px] font-semibold flex items-center gap-1" style={{ color: "#a0510a" }}>
-                              <AlertTriangleIcon size={11} /> Requires review
-                            </span>
-                          ) : (
-                            <span className="text-[11px] font-semibold flex items-center gap-1" style={{ color: "#1f6e48" }}>
-                              <CheckIcon size={11} /> Parsed successfully
-                            </span>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              className="btn-ghost px-3 py-1.5 rounded-lg text-xs font-semibold"
-                              style={{ color: "#5a5f6b" }}
-                            >
-                              Review
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-terra px-3 py-1.5 rounded-lg text-xs font-bold"
-                            >
-                              Process into Order →
-                            </button>
-                          </div>
+                          Live Map
+                        </span>
+                      </div>
+                      <div className="p-4 space-y-3 bg-[#faf8f5]/50">
+                        <p className="text-xs text-[#5a5f6b] font-light leading-relaxed">
+                          Interactive OpenStreetMap visualization of regional farmer intakes, aggregation corridors, and retail partner stores.
+                        </p>
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-[#8c8e96] border-t border-[#f0ece6] pt-2">
+                          <span>3 Retail Hubs · 7 Intakes</span>
+                          <button
+                            type="button"
+                            onClick={() => goTo("map")}
+                            className="font-bold text-[#c26d40] hover:underline flex items-center gap-1"
+                          >
+                            Open Live Map →
+                          </button>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             )}
+
+
 
             {/* ── ORDERS ── */}
             {activeTab === "orders" && (
@@ -1144,89 +1043,11 @@ export default function Home() {
               </div>
             )}
 
-            {/* ── AI INSIGHTS ── */}
-            {activeTab === "ai-insights" && (
-              <div className="page-enter space-y-5">
-                <div className="flex items-start justify-between gap-4">
-                  <SectionHeading
-                    title="AI Insights"
-                    subtitle="How FarmLink's AI interprets WhatsApp messages — across tractor services, agricultural supplies, and grocery requests."
-                  />
-                  <div
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-bold shrink-0"
-                    style={{ background: "#f2f4ff", color: "#3a4fa0", border: "1px solid #c8d0f5" }}
-                  >
-                    <SparklesIcon size={12} /> 12 parsed today
-                  </div>
-                </div>
+            {/* ── MAP VIEW ── */}
+            {activeTab === "map" && <MapView />}
 
-                {/* Summary tiles */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { label:"Avg Confidence", val:"94%", color:"#3a4fa0" },
-                    { label:"Auto-Processed",  val:"16",  color:"#1f6e48" },
-                    { label:"Needs Review",    val:"2",   color:"#a0510a" },
-                    { label:"Parse Failures",  val:"0",   color:"#8c8e96" },
-                  ].map((s, i) => (
-                    <div key={s.label} className="warm-card card-enter p-4" style={{ animationDelay: `${i * 50}ms` }}>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#8c8e96" }}>{s.label}</p>
-                      <p className="text-2xl font-extrabold tracking-tight mt-1" style={{ color: s.color }}>{s.val}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Interpretation cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { title:"Tractor Service", input:"Need tractor for 3-acre wheat field preparation tomorrow morning.", output:"Service: Field Prep · Location: Sonipat · Scope: 3 Acres", confidence:98 },
-                    { title:"Seeds & Fertilizer", input:"Need 20kg tomato seeds and 5 bags NPK fertilizer.", output:"Items: Seeds + NPK · Qty: 270 kg · Dispatch: Today", confidence:96 },
-                    { title:"Grocery Structuring", input:"Need 30 bags wheat flour and groceries for retail shop.", output:"Category: Bulk Groceries · Qty: 1,500 kg · Today Afternoon", confidence:99 },
-                    { title:"Pesticides (Review)", input:"Need pesticide spray for cotton crop infestation near Rohtak.", output:"Category: Pesticides · Crop: Cotton · ⚠ Qty unspecified", confidence:74 },
-                  ].map((ai, idx) => (
-                    <div
-                      key={idx}
-                      className="warm-card card-enter p-5 space-y-3.5"
-                      style={{ animationDelay: `${idx * 70}ms` }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold" style={{ color: "#1c1e24" }}>{ai.title}</h4>
-                        <div className="flex items-center gap-2">
-                          <div className="h-1 w-14 rounded-full overflow-hidden" style={{ background: "#e5e1da" }}>
-                            <div
-                              className="h-full rounded-full progress-bar"
-                              style={{ width: `${ai.confidence}%`, background: ai.confidence >= 90 ? "#426890" : "#d4a040" }}
-                            />
-                          </div>
-                          <span className="text-[10px] font-extrabold" style={{ color: ai.confidence >= 90 ? "#3a4fa0" : "#7a5d00" }}>
-                            {ai.confidence}%
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2.5">
-                        <div className="h-5 w-5 rounded-full shrink-0 flex items-center justify-center" style={{ background: "#25D366" }}>
-                          <WhatsAppIcon size={10} style={{ color: "#fff" }} />
-                        </div>
-                        <div
-                          className="flex-1 text-xs font-light italic leading-relaxed rounded-xl rounded-tl-none px-3 py-2"
-                          style={{ background: "#f0fdf0", border: "1px solid #c8eacc", color: "#1c3a1c" }}
-                        >
-                          "{ai.input}"
-                        </div>
-                      </div>
-
-                      <div
-                        className="flex items-start gap-2 text-xs font-semibold rounded-lg px-3 py-2.5"
-                        style={{ background: "#f2f4ff", border: "1px solid #c8d0f5", color: "#3a4fa0" }}
-                      >
-                        <SparklesIcon size={11} style={{ color: "#426890", flexShrink: 0, marginTop: 1 }} />
-                        <span>{ai.output}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* ── SETTINGS VIEW ── */}
+            {activeTab === "settings" && <SettingsSection />}
 
           </div>
         </main>

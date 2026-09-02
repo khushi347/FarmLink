@@ -16,13 +16,13 @@ interface HeaderProps {
 }
 
 const TAB_TITLES: Record<string, string> = {
-  overview:     "Overview",
-  intake:       "WhatsApp Intake",
-  orders:       "Orders",
-  tripblocks:   "TripBlocks",
-  shops:        "Shops",
-  delivery:     "Delivery",
-  "ai-insights":"AI Insights",
+  overview:   "Overview",
+  orders:     "Orders",
+  tripblocks: "TripBlocks",
+  shops:      "Shops",
+  delivery:   "Delivery",
+  map:        "Live Geographic Map",
+  settings:   "Settings",
 };
 
 function getInitials(name: string) {
