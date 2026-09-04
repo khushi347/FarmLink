@@ -1,10 +1,13 @@
 const completeTripService = require("../services/completeTripService");
 const eventBus = require("../events/eventBus");
+const Shop = require("../models/Shop");
 
 const completeTrip=async(req,res)=>{
     try{    
         const {tripId}=req.params;
-        const {shopId}=req.body;
+        const shop=await Shop.findOne({owner:req.user.userId || req.user.user});
+        if(!shop) return res.status(403).json({success:false,message:"Shop not found"});
+        const shopId=shop._id;
 
         const trip=await completeTripService(tripId,shopId);
 

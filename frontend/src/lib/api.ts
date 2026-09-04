@@ -113,3 +113,10 @@ export const mapApi = {
   },
 };
 
+export const tripApi = {
+  claim: (tripId: string, token?: string) =>
+    request(`/trip-blocks/${tripId}/claim`, { method: "POST" }, token),
+  complete: (tripId: string, token?: string) =>
+    request(`/trip-blocks/${tripId}/complete`, { method: "POST" }, token),
+};
+

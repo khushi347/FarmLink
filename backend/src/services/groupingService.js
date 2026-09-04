@@ -75,7 +75,7 @@ const groupOrder=async(orderId)=>{
         serviceType:currentOrder.serviceType,
         scheduledDate:currentOrder.requestedDate,
         centerLocation,
-        status:"Pending"
+        status:"OPEN"
     })
 
     await Order.updateMany(

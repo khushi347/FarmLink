@@ -1,8 +1,16 @@
 const TripBlock=require("../models/TripBlock");
 const Order=require("../models/Order");
+const Shop=require("../models/Shop");
+
+const getShopId=async(req)=>{
+    const shop=await Shop.findOne({owner:req.user.userId || req.user.user}).select("_id");
+    if(!shop) throw new Error("Shop not found");
+    return shop._id;
+};
 
 exports.getDashboard=async(req,res)=>{
     try{
+    const shopId=await getShopId(req);
         
         const available=await TripBlock.countDocuments({
             assignedShop:null,
@@ -10,21 +18,21 @@ exports.getDashboard=async(req,res)=>{
         });
 
         const acceptedTrips=await TripBlock.countDocuments({
-            assignedShop:req.user.userId,
+            assignedShop:shopId,
             status:"CLAIMED"
         });
 
         const completedTrips=await TripBlock.countDocuments({
-            assignedShop:req.user.userId,
+            assignedShop:shopId,
             status:"COMPLETED"
         });
 
         const totalOrders=await Order.countDocuments({
-            assignedShop:req.user.userId
+            assignedShop:shopId
         })
 
         const trips=await TripBlock.find({
-            assignedShop:req.user.userId,
+            assignedShop:shopId,
             status:"COMPLETED"
         });
 
@@ -101,6 +109,7 @@ exports.getAvailableTrips=async(req,res)=>{
 
 exports.getAcceptedTrips=async(req,res)=>{
     try{
+    const shopId=await getShopId(req);
         const page= Number(req.query.page) || 1;
         const limit=Number(req.query.limit) || 10;
 
@@ -112,7 +121,7 @@ exports.getAcceptedTrips=async(req,res)=>{
 
         const filter={
             status:"CLAIMED",
-            assignedShop:req.user.userId
+            assignedShop:shopId
         };
 
         if(serviceType){
@@ -148,6 +157,7 @@ exports.getAcceptedTrips=async(req,res)=>{
 
 exports.getCompletedTrips=async(req,res)=>{
     try{
+    const shopId=await getShopId(req);
         const page= Number(req.query.page) || 1;
         const limit=Number(req.query.limit) || 10;
 
@@ -159,7 +169,7 @@ exports.getCompletedTrips=async(req,res)=>{
 
         const filter={
             status:"COMPLETED",
-            assignedShop:req.user.userId
+            assignedShop:shopId
         };
 
         if(serviceType){
@@ -194,6 +204,7 @@ exports.getCompletedTrips=async(req,res)=>{
 
 exports.getOrders = async (req, res) => {
     try {
+    const shopId=await getShopId(req);
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
 
@@ -202,7 +213,7 @@ exports.getOrders = async (req, res) => {
         const { status, serviceType } = req.query;
 
         const filter = {
-            assignedShop: req.user.userId
+            assignedShop: shopId
         };
 
         if (status) {
@@ -243,11 +254,12 @@ exports.getOrders = async (req, res) => {
 
 exports.getRevenue = async (req, res) => {
     try {
+    const shopId=await getShopId(req);
 
         const result = await TripBlock.aggregate([
             {
                 $match: {
-                    assignedShop: req.user.userId,
+                    assignedShop: shopId,
                     status: "COMPLETED"
                 }
             },

@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { mapApi, tripApi } from "@/lib/api";
+import { MapDataResponse, MapOrder, MapTripBlock } from "@/types/map";
+import { useRealtime } from "@/hooks/useRealtime";
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -85,6 +88,21 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; border: string }>
 };
 
 const LIVE_STATUSES = new Set(["NEW", "IN DELIVERY", "AVAILABLE TO SHOPS"]);
+
+function orderWorkflowStatus(status: MapOrder["status"]): WorkflowStatus {
+  if (status === "Pending") return "READY FOR GROUPING";
+  if (status === "Grouped") return "ASSIGNED TO TRIPBLOCK";
+  if (status === "Accepted") return "IN DELIVERY";
+  if (status === "Completed") return "COMPLETED";
+  return "NEEDS REVIEW";
+}
+
+function tripWorkflowStatus(status: MapTripBlock["status"]): WorkflowStatus {
+  if (status === "OPEN" || status === "Pending") return "AVAILABLE TO SHOPS";
+  if (status === "CLAIMED" || status === "LOCKED") return "CLAIMED";
+  if (status === "IN DELIVERY") return "IN DELIVERY";
+  return "COMPLETED";
+}
 
 function StatusBadge({ status }: { status: WorkflowStatus }) {
   const s = STATUS_STYLE[status] ?? { bg: "#f6f6f6", text: "#5a5f6b", border: "#d8d8d8" };
@@ -177,13 +195,16 @@ function Divider() {
    MAIN COMPONENT
 ──────────────────────────────────────────────────── */
 export default function Home() {
-  const { user, isLoading } = useAuth();
+  const { user, token, isLoading } = useAuth();
+  const { status: realtimeStatus, subscribe } = useRealtime();
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [actFilter, setActFilter] = useState("ALL");
-  const [claimedBlocks, setClaimedBlocks] = useState<Record<string, string>>({});
+  const [dashboardData, setDashboardData] = useState<MapDataResponse["data"] | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [claimingTripId, setClaimingTripId] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [liveCount, setLiveCount] = useState(18);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -200,10 +221,45 @@ export default function Home() {
     return () => window.removeEventListener("popstate", h);
   }, []);
 
+  const loadDashboardData = useCallback(async () => {
+    if (!token) return;
+    try {
+      setDataError(null);
+      const response = await mapApi.getMapData(undefined, token);
+      if (!response.success) throw new Error(response.message || "Unable to load dashboard data");
+      setDashboardData(response.data);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Unable to load dashboard data");
+    }
+  }, [token]);
+
   useEffect(() => {
-    const t = setInterval(() => setLiveCount((n) => n + 1), 18000);
-    return () => clearInterval(t);
-  }, []);
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  useEffect(() => {
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        loadDashboardData();
+        refreshTimerRef.current = null;
+      }, 250);
+    };
+    const cleanups = [
+      subscribe("new_order", scheduleRefresh),
+      subscribe("trip_created", scheduleRefresh),
+      subscribe("trip_claimed", scheduleRefresh),
+      subscribe("trip_completed", scheduleRefresh),
+    ];
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [loadDashboardData, subscribe]);
+
+  useEffect(() => {
+    if (realtimeStatus === "connected") loadDashboardData();
+  }, [realtimeStatus, loadDashboardData]);
 
   const goTo = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -228,62 +284,71 @@ export default function Home() {
   if (!user) return null;
 
   /* ── DATA ── */
+  const sourceOrders = dashboardData?.orders || [];
+  const sourceTrips = dashboardData?.tripBlocks || [];
+  const orders: OrderRecord[] = sourceOrders.map((order) => ({
+    id: order.id,
+    code: order.code,
+    customer: order.farmer?.name || "Local Farmer",
+    category: order.serviceType as RequestCategory,
+    location: order.coordinates.join(", "),
+    itemDetails: order.products.map((product) => `${product.quantity} ${product.unit || "units"} ${product.name}`).join(", "),
+    status: orderWorkflowStatus(order.status),
+    created: order.requestedDate ? new Date(order.requestedDate).toLocaleString() : "",
+    quantity: order.products.map((product) => `${product.quantity} ${product.unit || "units"}`).join(", "),
+  }));
+  const tripblocks: TripBlockRecord[] = sourceTrips.map((trip) => ({
+    id: trip.id,
+    code: trip.code,
+    orderCount: trip.orderCount,
+    categoryItems: trip.serviceType,
+    corridor: `${trip.orderCount} origin points`,
+    weightQuantity: `${trip.totalQuantity}`,
+    claimStatus: tripWorkflowStatus(trip.status),
+    claimedByShop: trip.assignedShop?.name,
+    orders: trip.orders.map((order) => order.code),
+  }));
+  const shopRows = (dashboardData?.shops || []).map((shop) => {
+    const claims = sourceTrips.filter((trip) => trip.assignedShop?.id === shop.id);
+    return {
+      name: shop.name,
+      location: shop.village,
+      claims: claims.map((trip) => trip.code).join(", ") || "None",
+      count: claims.length,
+    };
+  });
+  const deliveryRows = sourceTrips
+    .filter((trip) => trip.status === "CLAIMED" || trip.status === "IN DELIVERY")
+    .map((trip) => ({
+      code: trip.code,
+      route: `${trip.orderCount} origin points -> ${trip.assignedShop?.name || "Unassigned"}`,
+      items: `${trip.totalQuantity} total · ${trip.serviceType}`,
+      progress: trip.status === "IN DELIVERY" ? 80 : 40,
+      eta: trip.scheduledDate ? new Date(trip.scheduledDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--",
+      steps: ["Grouped", "Shop Claimed", "In Transit", "Delivered"],
+      status: tripWorkflowStatus(trip.status),
+    }));
+  const shopActivity = sourceTrips
+    .filter((trip) => trip.assignedShop)
+    .slice(0, 4)
+    .map((trip) => ({
+      shop: trip.assignedShop?.name || "Shop",
+      action: `${trip.status === "COMPLETED" ? "Completed" : "Claimed"} ${trip.code}`,
+      time: trip.scheduledDate ? new Date(trip.scheduledDate).toLocaleString() : "",
+    }));
   const activityItems: ActivityItem[] = [
-    { id:"a1", itemRef:"WhatsApp Request", source:"Farmer Sanjay (Sonipat)",   category:"Tractor Service",       status:"AI PARSED",           updated:"2 min ago",  actionText:"Review" },
-    { id:"a2", itemRef:"WhatsApp Request", source:"Narela Farmers Co-op",       category:"Seeds & Fertilizer",    status:"READY FOR GROUPING",  updated:"8 min ago",  actionText:"Group"  },
-    { id:"a3", itemRef:"Order #FL-204",    source:"Panipat Supply Cluster",     category:"Agricultural Supplies", status:"ASSIGNED TO TRIPBLOCK",updated:"18 min ago", actionText:"View"   },
-    { id:"a4", itemRef:"TripBlock TB-104", source:"Sonipat–Panipat Corridor",   category:"Seeds & Fertilizer",    status:"AVAILABLE TO SHOPS",  updated:"25 min ago", actionText:"View"   },
-    { id:"a5", itemRef:"TripBlock TB-101", source:"Karnal Retail Hub",          category:"Groceries",             status:"CLAIMED",             updated:"42 min ago", actionText:"View"   },
-    { id:"a6", itemRef:"WhatsApp Request", source:"Harvinder Singh (Rohtak)",   category:"Pesticides",            status:"NEEDS REVIEW",        updated:"55 min ago", actionText:"Review" },
-    { id:"a7", itemRef:"Order #FL-198",    source:"Kisan Retail Mart",          category:"Groceries",             status:"IN DELIVERY",         updated:"1h ago",     actionText:"Track"  },
+    ...sourceOrders.map((order) => ({
+      id: `order-${order.id}`, itemRef: `Order #${order.code}`, source: order.farmer?.name || "Local Farmer",
+      category: order.serviceType as RequestCategory, status: orderWorkflowStatus(order.status),
+      updated: order.requestedDate ? new Date(order.requestedDate).toLocaleString() : "", actionText: "View",
+    })),
+    ...sourceTrips.map((trip) => ({
+      id: `trip-${trip.id}`, itemRef: `TripBlock ${trip.code}`, source: trip.serviceType,
+      category: trip.serviceType as RequestCategory, status: tripWorkflowStatus(trip.status),
+      updated: trip.scheduledDate ? new Date(trip.scheduledDate).toLocaleString() : "", actionText: "View",
+    })),
   ];
-
-  const intakes: WhatsAppIntake[] = [
-    {
-      id:"w1", sender:"Farmer Sanjay", phone:"+91 98120 44102", timestamp:"08:14 AM",
-      rawMessage:"Need tractor for 3-acre wheat field preparation tomorrow morning.",
-      category:"Tractor Service", aiStatus:"AI PARSED", aiConfidence:98,
-      parsed:{ item:"Tractor Field Preparation", qty:"3 Acres", location:"Sonipat Field Cluster 2", timing:"Tomorrow 08:00 AM" },
-    },
-    {
-      id:"w2", sender:"Narela Farmers Co-op", phone:"+91 94162 88301", timestamp:"08:22 AM",
-      rawMessage:"Need 20kg tomato seeds and 5 bags NPK fertilizer for allocation.",
-      category:"Seeds & Fertilizer", aiStatus:"READY FOR GROUPING", aiConfidence:96,
-      parsed:{ item:"Tomato Seeds + NPK Fertilizer", qty:"20kg + 5 Bags (250kg)", location:"Narela North Hub", timing:"Today Dispatch" },
-    },
-    {
-      id:"w3", sender:"Gurpreet Store Co-op", phone:"+91 97291 55204", timestamp:"08:35 AM",
-      rawMessage:"Need 30 bags wheat flour and groceries for retail shop.",
-      category:"Grocery Supplies", aiStatus:"AI PARSED", aiConfidence:99,
-      parsed:{ item:"Bulk Wheat Flour & Store Groceries", qty:"30 Bags (~1,500 kg)", location:"Karnal Retail Sector", timing:"Today Afternoon" },
-    },
-    {
-      id:"w4", sender:"Harvinder Singh", phone:"+91 98120 77319", timestamp:"08:48 AM",
-      rawMessage:"Need pesticide spray for cotton crop infestation near Rohtak.",
-      category:"Pesticides", aiStatus:"NEEDS REVIEW", aiConfidence:74,
-      parsed:{ item:"Cotton Crop Pest Control Spray", qty:"5 L (Concentrated)", location:"Rohtak Outer Fields", timing:"Urgent — Today" },
-    },
-  ];
-
-  const orders: OrderRecord[] = [
-    { id:"o1", code:"FL-ORD-204", customer:"Narela Farmers Co-op",  category:"Seeds & Fertilizer",   location:"Narela North Corridor",   itemDetails:"Tomato Seeds + NPK Fertilizer",        status:"READY FOR GROUPING",    created:"08:22 AM", quantity:"270 kg"   },
-    { id:"o2", code:"FL-ORD-201", customer:"Farmer Sanjay",         category:"Tractor Service",       location:"Sonipat Field Cluster 2", itemDetails:"Tractor Land Prep (3 Acres)",           status:"AI PARSED",             created:"08:14 AM", quantity:"1 Service"},
-    { id:"o3", code:"FL-ORD-198", customer:"Kisan Retail Mart",     category:"Grocery Supplies",      location:"Karnal Central",          itemDetails:"30 Bags Wheat Flour + Groceries",       status:"ASSIGNED TO TRIPBLOCK", created:"07:55 AM", quantity:"1,500 kg" },
-    { id:"o4", code:"FL-ORD-195", customer:"Harvinder Singh",       category:"Pesticides",            location:"Rohtak Outer Fields",     itemDetails:"Cotton Crop Spray Treatment",           status:"NEEDS REVIEW",          created:"08:48 AM", quantity:"5 L"      },
-  ];
-
-  const tripblocks: TripBlockRecord[] = [
-    { id:"t1", code:"TB-104", orderCount:2, categoryItems:"Seeds & Fertilizer",              corridor:"Sonipat → Panipat Retail Corridor", weightQuantity:"450 kg",   claimStatus:"AVAILABLE TO SHOPS", deadlineMinutes:28, orders:["FL-ORD-204","FL-ORD-199"] },
-    { id:"t2", code:"TB-101", orderCount:1, categoryItems:"Store Groceries & Bulk Flour",    corridor:"Karnal Retail Corridor",            weightQuantity:"1,500 kg", claimStatus:"CLAIMED",            claimedByShop:"Green Valley Store (Panipat)", orders:["FL-ORD-198"] },
-    { id:"t3", code:"TB-098", orderCount:2, categoryItems:"Agricultural Pesticides & Tools", corridor:"Rohtak Hub Corridor",               weightQuantity:"320 kg",   claimStatus:"IN DELIVERY",        claimedByShop:"Mohan Agro Mart (Karnal)",     orders:["FL-ORD-189","FL-ORD-185"] },
-  ];
-
-  const attention = [
-    { text:"Duplicate WhatsApp request from Farmer Rajveer — needs resolution",      urgency:"high"   },
-    { text:"Order FL-ORD-201 has an incomplete audio note — unit spec missing",       urgency:"medium" },
-    { text:"TripBlock TB-104 claim deadline approaching — 28 minutes remaining",      urgency:"high"   },
-    { text:"Pesticide request from Rohtak requires coordinator review before grouping",urgency:"medium" },
-  ];
+  const attention: { text: string; urgency: string }[] = [];
 
   const filteredActivity = activityItems.filter((a) => {
     if (actFilter === "WHATSAPP")  return a.itemRef.includes("WhatsApp");
@@ -292,12 +357,13 @@ export default function Home() {
     return true;
   });
 
+  const stats = dashboardData?.stats;
   const metrics = [
-    { label:"WhatsApp Requests",   val:String(liveCount), sub:"+4 this hour",        accent:"#c26d40", live:true  },
-    { label:"Ready for Grouping",  val:"7",               sub:"1,420 kg pending",    accent:"#c26d40", live:false },
-    { label:"TripBlocks Available",val:"4",               sub:"Open for claims",      accent:"#b84a0a", live:true  },
-    { label:"Shop Claims Today",   val:"6",               sub:"Confirmed & locked",   accent:"#1f6e48", live:false },
-    { label:"In Delivery",         val:"3",               sub:"Active shipments",     accent:"#234e72", live:true  },
+    { label:"Orders", val:String(stats?.totalOrders || 0), sub:"Current orders", accent:"#c26d40", live:true },
+    { label:"Ready for Grouping", val:String(stats?.pendingOrders || 0), sub:"Pending orders", accent:"#c26d40", live:false },
+    { label:"TripBlocks Available", val:String(stats?.openTripBlocks || 0), sub:"Open for claims", accent:"#b84a0a", live:true },
+    { label:"Shop Claims", val:String(stats?.claimedTripBlocks || 0), sub:"Currently claimed", accent:"#1f6e48", live:false },
+    { label:"Completed", val:String(stats?.completedTripBlocks || 0), sub:"Completed TripBlocks", accent:"#234e72", live:true },
   ];
 
   /* ── SHARED SURFACE STYLES ── */
@@ -333,6 +399,13 @@ export default function Home() {
 
         <main className="flex-1 overflow-y-auto">
 
+          {dataError && (
+            <div className="mx-6 mt-4 rounded-lg border border-[#f0b0b0] bg-[#fff5f5] px-4 py-3 text-xs text-[#902020]">
+              {dataError}
+              <button type="button" onClick={loadDashboardData} className="ml-3 font-bold underline">Retry</button>
+            </div>
+          )}
+
           {/* ── PAGE HEADER (sticky sub-header strip) ── */}
           <div
             className="px-6 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-4"
@@ -350,10 +423,10 @@ export default function Home() {
             {/* Compact workflow pipeline */}
             <div className="hidden xl:flex items-center gap-2">
               {[
-                { label:"Orders",     n:7, color:"#8a5a00", bg:"#fdf5e8", border:"#f5cc7a" },
-                { label:"TripBlocks", n:4, color:"#b84a0a", bg:"#fff4ec", border:"#f5c4a0" },
-                { label:"Claimed",    n:6, color:"#1f6e48", bg:"#eef7f2", border:"#a8d8bc" },
-                { label:"Delivery",   n:3, color:"#234e72", bg:"#edf4fb", border:"#a8c8e8" },
+                { label:"Orders",     n:stats?.totalOrders || 0, color:"#8a5a00", bg:"#fdf5e8", border:"#f5cc7a" },
+                { label:"TripBlocks", n:stats?.openTripBlocks || 0, color:"#b84a0a", bg:"#fff4ec", border:"#f5c4a0" },
+                { label:"Claimed",    n:stats?.claimedTripBlocks || 0, color:"#1f6e48", bg:"#eef7f2", border:"#a8d8bc" },
+                { label:"Completed",  n:stats?.completedTripBlocks || 0, color:"#234e72", bg:"#edf4fb", border:"#a8c8e8" },
               ].map((s, i, arr) => (
                 <React.Fragment key={s.label}>
                   <div
@@ -416,14 +489,14 @@ export default function Home() {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold" style={{ color: "#7a3a10" }}>Needs Coordinator Attention</h3>
-                          <p className="text-[11px] font-light" style={{ color: "#c26d40" }}>4 items require action</p>
+                          <p className="text-[11px] font-light" style={{ color: "#c26d40" }}>{attention.length} items require action</p>
                         </div>
                       </div>
                       <span
                         className="text-[10px] font-extrabold px-2 py-1 rounded-full uppercase tracking-wide"
                         style={{ background: "#fff0e5", color: "#a0510a", border: "1px solid #f5d5b8" }}
                       >
-                        4 Active
+                        {attention.length} Active
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -578,12 +651,7 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="divide-y" style={{ borderColor: "#f0ece6" }}>
-                      {[
-                        { shop:"Green Valley Store", action:"Claimed TB-104 (Seeds & Fertilizer)", time:"12m ago" },
-                        { shop:"Kisan General Store", action:"Viewed TB-204 (Agricultural Supplies)", time:"28m ago" },
-                        { shop:"Mohan Agro Mart", action:"Completed pickup for TB-101", time:"1h ago" },
-                        { shop:"Rural Retail Hub", action:"Placed store supply order #FL-204", time:"2h ago" },
-                      ].map((a, i) => (
+                      {shopActivity.map((a, i) => (
                         <div
                           key={i}
                           className="px-5 py-3 flex items-start gap-3 transition-colors"
@@ -621,12 +689,12 @@ export default function Home() {
                         className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: "#fff4ec", color: "#b84a0a", border: "1px solid #f5c4a0" }}
                       >
-                        4 Available
+                        {stats?.openTripBlocks || 0} Available
                       </span>
                     </div>
                     <div className="divide-y" style={{ borderColor: "#f0ece6" }}>
                       {tripblocks.slice(0, 2).map((tb) => {
-                        const claimed = claimedBlocks[tb.code] || tb.claimedByShop;
+                        const claimed = tb.claimedByShop;
                         return (
                           <div key={tb.id} className="px-5 py-3.5">
                             <div className="flex items-center justify-between mb-1.5">
@@ -660,17 +728,14 @@ export default function Home() {
                       <TruckIcon size={14} style={{ color: "#234e72" }} />
                       <h3 className="text-xs font-bold" style={{ color: "#1c1e24" }}>Active Deliveries</h3>
                     </div>
-                    {[
-                      { label:"TB-098 → Mohan Agro Mart", progress:80, color:"#426890" },
-                      { label:"TB-101 → Green Valley Store", progress:40, color:"#426890" },
-                    ].map((d) => (
-                      <div key={d.label}>
+                    {deliveryRows.map((d) => (
+                      <div key={d.code}>
                         <div className="flex justify-between mb-1.5">
-                          <span className="text-[11px] font-semibold" style={{ color: "#3a3f47" }}>{d.label}</span>
-                          <span className="text-[10px] font-bold" style={{ color: d.color }}>{d.progress}%</span>
+                          <span className="text-[11px] font-semibold" style={{ color: "#3a3f47" }}>{d.code} → {d.route.split(" -> ")[1]}</span>
+                          <span className="text-[10px] font-bold" style={{ color: "#426890" }}>{d.progress}%</span>
                         </div>
                         <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#e5e1da" }}>
-                          <div className="h-full rounded-full progress-bar" style={{ width: `${d.progress}%`, background: d.color }} />
+                          <div className="h-full rounded-full progress-bar" style={{ width: `${d.progress}%`, background: "#426890" }} />
                         </div>
                       </div>
                     ))}
@@ -696,7 +761,7 @@ export default function Home() {
                           Interactive OpenStreetMap visualization of regional farmer intakes, aggregation corridors, and retail partner stores.
                         </p>
                         <div className="flex items-center justify-between text-[11px] font-semibold text-[#8c8e96] border-t border-[#f0ece6] pt-2">
-                          <span>3 Retail Hubs · 7 Intakes</span>
+                          <span>{dashboardData?.shops.length || 0} Retail Hubs · {dashboardData?.orders.length || 0} Orders</span>
                           <button
                             type="button"
                             onClick={() => goTo("map")}
@@ -793,13 +858,13 @@ export default function Home() {
                     className="text-[11px] font-bold px-3 py-1.5 rounded-full shrink-0"
                     style={{ background: "#fff4ec", color: "#b84a0a", border: "1px solid #f5c4a0" }}
                   >
-                    4 open for claims
+                    {stats?.openTripBlocks || 0} open for claims
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {tripblocks.map((tb, idx) => {
-                    const claimed = claimedBlocks[tb.code] || tb.claimedByShop;
+                    const claimed = tb.claimedByShop;
                     const status: WorkflowStatus = claimed ? "CLAIMED" : tb.claimStatus;
                     const stripeColor =
                       status === "CLAIMED" || status === "LOCKED" ? "#1f6e48"
@@ -875,7 +940,18 @@ export default function Home() {
                               )}
                               <button
                                 type="button"
-                                onClick={() => setClaimedBlocks((p) => ({ ...p, [tb.code]: user.name }))}
+                                onClick={async () => {
+                                  setClaimingTripId(tb.id);
+                                  try {
+                                    await tripApi.claim(tb.id, token || undefined);
+                                    await loadDashboardData();
+                                  } catch (error) {
+                                    setDataError(error instanceof Error ? error.message : "Unable to claim TripBlock");
+                                  } finally {
+                                    setClaimingTripId(null);
+                                  }
+                                }}
+                                disabled={claimingTripId === tb.id}
                                 className="btn-terra w-full py-2.5 rounded-lg text-xs font-bold"
                               >
                                 Claim TripBlock for Shop
@@ -909,11 +985,7 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        { name:"Green Valley Store",  location:"Panipat Sector 11 Corridor", claims:"TB-104, TB-101", count:2 },
-                        { name:"Kisan General Store", location:"Sonipat Main Corridor",       claims:"TB-204",         count:1 },
-                        { name:"Mohan Agro Mart",     location:"Karnal Central Corridor",     claims:"TB-098",         count:1 },
-                      ].map((shop, idx) => (
+                      {shopRows.map((shop, idx) => (
                         <tr
                           key={shop.name}
                           className="data-row card-enter"
@@ -964,12 +1036,7 @@ export default function Home() {
                   subtitle="Claimed TripBlocks currently en route to destination retail stores."
                 />
                 <div className="space-y-4">
-                  {[
-                    { code:"TB-098", route:"Rohtak Hub → Mohan Agro Mart",      items:"320 kg · Pesticides & Tools",    progress:80, eta:"10:45 AM",
-                      steps:["Grouped","Shop Claimed","Locked","In Transit","Delivered"] },
-                    { code:"TB-101", route:"Karnal Hub → Green Valley Store",    items:"1,500 kg · Groceries & Flour",   progress:40, eta:"11:30 AM",
-                      steps:["Grouped","Shop Claimed","Locked","In Transit","Delivered"] },
-                  ].map((d, idx) => {
+                  {deliveryRows.map((d, idx) => {
                     const step = Math.round((d.progress / 100) * (d.steps.length - 1));
                     return (
                       <div
@@ -981,7 +1048,7 @@ export default function Home() {
                           <div>
                             <div className="flex items-center gap-2.5 mb-1">
                               <span className="font-mono font-extrabold" style={{ color: "#1c1e24" }}>{d.code}</span>
-                              <StatusBadge status="IN DELIVERY" />
+                              <StatusBadge status={d.status} />
                             </div>
                             <p className="text-sm font-semibold" style={{ color: "#1c1e24" }}>{d.route}</p>
                             <p className="text-xs font-light mt-0.5" style={{ color: "#8c8e96" }}>{d.items}</p>

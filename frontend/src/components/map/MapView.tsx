@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Cormorant_Garamond } from "next/font/google";
 import { mapApi } from "@/lib/api";
@@ -17,6 +17,8 @@ import MapControls from "./MapControls";
 import MapInspector from "./MapInspector";
 import MapLegend from "./MapLegend";
 import { AlertTriangleIcon, CrosshairIcon } from "@/components/Icons";
+import { useAuth } from "@/context/AuthContext";
+import { useRealtime } from "@/hooks/useRealtime";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -43,6 +45,9 @@ const FarmLinkMap = dynamic(() => import("./FarmLinkMap"), {
 });
 
 export default function MapView() {
+  const { token } = useAuth();
+  const { status: realtimeStatus, subscribe } = useRealtime();
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [shops, setShops] = useState<MapShop[]>([]);
   const [orders, setOrders] = useState<MapOrder[]>([]);
   const [tripBlocks, setTripBlocks] = useState<MapTripBlock[]>([]);
@@ -74,7 +79,7 @@ export default function MapView() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await mapApi.getMapData();
+      const res = await mapApi.getMapData(undefined, token || undefined);
       if (res.success && res.data) {
         setShops(res.data.shops || []);
         setOrders(res.data.orders || []);
@@ -99,11 +104,35 @@ export default function MapView() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     loadMapData();
   }, [loadMapData]);
+
+  useEffect(() => {
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        loadMapData();
+        refreshTimerRef.current = null;
+      }, 250);
+    };
+    const cleanups = [
+      subscribe("new_order", scheduleRefresh),
+      subscribe("trip_created", scheduleRefresh),
+      subscribe("trip_claimed", scheduleRefresh),
+      subscribe("trip_completed", scheduleRefresh),
+    ];
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [loadMapData, subscribe]);
+
+  useEffect(() => {
+    if (realtimeStatus === "connected") loadMapData();
+  }, [realtimeStatus, loadMapData]);
 
   // Extract unique service categories
   const serviceCategories = useMemo(() => {
@@ -145,7 +174,7 @@ export default function MapView() {
             style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
           >
             <span className="h-1.5 w-1.5 rounded-full live-dot" style={{ background: "#3faa6e" }} />
-            OpenStreetMap Active
+            {realtimeStatus === "connected" ? "Live updates active" : "Live updates offline"}
           </span>
           <button
             type="button"

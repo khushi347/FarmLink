@@ -1,6 +1,7 @@
 const eventBus = require("./eventBus");
 const socketAuth = require("../middleware/socketAuth");
 const Shop = require("../models/Shop");
+const crypto = require("crypto");
 
 const setupSocketEvents = (io) => {
 
@@ -13,10 +14,10 @@ const setupSocketEvents = (io) => {
         console.log("Client connected");
 
         // Shop connection
-        if (socket.user.role === "shop") {
+        if (socket.user.role === "shopkeeper") {
 
             const shop = await Shop.findOne({
-                owner: socket.user.userId,
+                owner: socket.user.userId || socket.user.user,
             });
 
             if (!shop) {
@@ -42,11 +43,17 @@ const setupSocketEvents = (io) => {
 
     eventBus.on("new_order", ({ order, shopIds }) => {
 
+        const payload = {
+            eventId: crypto.randomUUID(),
+            occurredAt: new Date().toISOString(),
+            order,
+        };
+
         shopIds.forEach((shopId) => {
 
             io.to(`shop:${shopId}`).emit(
                 "new_order",
-                order
+                payload
             );
 
         });
@@ -55,60 +62,70 @@ const setupSocketEvents = (io) => {
 
     eventBus.on("trip_created", ({ tripBlock, shopIds }) => {
 
+        const payload = {
+            eventId: crypto.randomUUID(),
+            occurredAt: new Date().toISOString(),
+            tripBlock,
+        };
+
         shopIds.forEach((shopId) => {
 
             io.to(`shop:${shopId}`).emit(
                 "trip_created",
-                tripBlock
+                payload
             );
 
         });
 
         io.to("admin").emit(
             "trip_created",
-            tripBlock
+            payload
         );
 
     });
 
     eventBus.on("trip_claimed", ({ tripId, shopId }) => {
 
+        const payload = {
+            eventId: crypto.randomUUID(),
+            occurredAt: new Date().toISOString(),
+            tripId,
+            shopId,
+        };
+
         // Notify the shop that successfully claimed it
         io.to(`shop:${shopId}`).emit(
             "trip_claimed",
-            {
-                tripId
-            }
+            payload
         );
 
         // Notify admin
         io.to("admin").emit(
             "trip_claimed",
-            {
-                tripId,
-                shopId
-            }
+            payload
         );
 
     });
 
     eventBus.on("trip_completed", ({ tripId, shopId }) => {
 
+        const payload = {
+            eventId: crypto.randomUUID(),
+            occurredAt: new Date().toISOString(),
+            tripId,
+            shopId,
+        };
+
         // Notify the assigned shop
         io.to(`shop:${shopId}`).emit(
             "trip_completed",
-            {
-                tripId
-            }
+            payload
         );
 
         // Notify admin
         io.to("admin").emit(
             "trip_completed",
-            {
-                tripId,
-                shopId
-            }
+            payload
         );
 
     });
