@@ -33,7 +33,7 @@ exports.getMapData = async (req, res) => {
         const { serviceType, status } = req.query;
 
         // 1. Fetch Shops
-        const shopsQuery = {};
+        const shopsQuery = { isDemo: { $ne: true } };
         if (serviceType) {
             shopsQuery.category = serviceType;
         }
@@ -64,7 +64,7 @@ exports.getMapData = async (req, res) => {
         }
 
         // 2. Fetch Orders
-        const ordersQuery = {};
+        const ordersQuery = { isDemo: { $ne: true } };
         if (serviceType) ordersQuery.serviceType = serviceType;
         if (status) ordersQuery.status = status;
 
@@ -107,7 +107,7 @@ exports.getMapData = async (req, res) => {
         }
 
         // 3. Fetch TripBlocks
-        const tripQuery = {};
+        const tripQuery = { isDemo: { $ne: true } };
         if (serviceType) tripQuery.serviceType = serviceType;
         if (status) tripQuery.status = status;
 

@@ -49,6 +49,12 @@ const shopSchema=new mongoose.Schema({
             type:[Number],
             required:true
         },
+    },
+
+    isDemo:{
+        type:Boolean,
+        default:false,
+        index:true
     }
 },
 {

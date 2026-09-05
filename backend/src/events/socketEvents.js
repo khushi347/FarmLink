@@ -2,8 +2,12 @@ const eventBus = require("./eventBus");
 const socketAuth = require("../middleware/socketAuth");
 const Shop = require("../models/Shop");
 const crypto = require("crypto");
+const demoController = require("../controllers/demoController");
 
 const setupSocketEvents = (io) => {
+
+    // Give demoController access to the io instance for emitting demo:* events
+    demoController.setIo(io);
 
     // Authenticate every Socket.io connection
     io.use(socketAuth);
@@ -30,6 +34,12 @@ const setupSocketEvents = (io) => {
             console.log(
                 `Shop joined the room: shop:${shop._id}`
             );
+        }
+
+        // Demo visitor connection — join session-scoped room
+        if (socket.user.role === "demo" && socket.user.sessionId) {
+            socket.join(`demo:${socket.user.sessionId}`);
+            console.log(`Demo visitor joined room: demo:${socket.user.sessionId}`);
         }
 
         // Admin connection

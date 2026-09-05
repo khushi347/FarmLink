@@ -106,22 +106,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setToken(null);
         localStorage.removeItem("farmlink_user");
-        router.push("/login");
+        if (pathname && !pathname.startsWith("/demo")) {
+          router.push("/login");
+        }
       }
     }, 14 * 60 * 1000); // 14 minutes
 
     return () => clearInterval(interval);
-  }, [token, router]);
+  }, [token, router, pathname]);
 
   // Route protection
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !pathname) return;
 
-    const isPublicRoute = pathname === "/login";
+    // Public routes that unauthenticated users can access
+    const isPublicRoute = pathname === "/login" || pathname.startsWith("/demo");
+    // Routes that authenticated users should be redirected away from (e.g. login page)
+    const isAuthOnlyRoute = pathname === "/login";
 
     if (!token && !isPublicRoute) {
       router.push("/login");
-    } else if (token && isPublicRoute) {
+    } else if (token && isAuthOnlyRoute) {
       router.push("/");
     }
   }, [token, pathname, isLoading, router]);

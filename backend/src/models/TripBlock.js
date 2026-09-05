@@ -65,6 +65,18 @@ const tripBlockSchema = new mongoose.Schema(
         type:[Number],
         required:true
       }
+    },
+
+    isDemo:{
+      type:Boolean,
+      default:false,
+      index:true
+    },
+
+    demoSessionId:{
+      type:String,
+      default:null,
+      index:true
     }
   },
   {

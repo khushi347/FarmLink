@@ -238,7 +238,18 @@ export default function Sidebar({
         </div>
 
         {/* Quick action buttons */}
-        <div className="flex gap-1.5">
+        <div className="flex flex-col gap-1.5">
+          <a
+            href="/demo"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-[#b84a0a] hover:text-white bg-[#fff8f2] hover:bg-[#c26d40] border border-[#f5d5b8] hover:border-[#c26d40] transition-all"
+          >
+            <span>🌾</span>
+            <span>View Public Demo</span>
+            <span className="text-[9px] opacity-60">↗</span>
+          </a>
+          <div className="flex gap-1.5">
           <button
             type="button"
             onClick={() => handleTabClick("settings")}
@@ -255,6 +266,7 @@ export default function Sidebar({
             <LogOutIcon size={12} />
             <span>Sign Out</span>
           </button>
+          </div>
         </div>
       </div>
     </div>

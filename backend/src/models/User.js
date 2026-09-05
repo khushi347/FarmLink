@@ -34,6 +34,12 @@ const userSchema=new mongoose.Schema({
     refreshToken:{
         type:String,
         default:""
+    },
+
+    isDemo:{
+        type:Boolean,
+        default:false,
+        index:true
     }
 },
 {

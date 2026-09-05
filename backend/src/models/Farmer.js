@@ -18,6 +18,18 @@ const farmerSchema=new mongoose.Schema({
     language:{
         type:String,
         default:"Hindi"
+    },
+
+    isDemo:{
+        type:Boolean,
+        default:false,
+        index:true
+    },
+
+    demoSessionId:{
+        type:String,
+        default:null,
+        index:true
     }
 },
 {

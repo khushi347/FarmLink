@@ -94,6 +94,18 @@ const orderSchema=new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"TripBlock",
         default:null
+    },
+
+    isDemo:{
+        type:Boolean,
+        default:false,
+        index:true
+    },
+
+    demoSessionId:{
+        type:String,
+        default:null,
+        index:true
     }
 },
 {

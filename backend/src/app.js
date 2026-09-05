@@ -23,6 +23,7 @@ const groupRoutes=require("./routes/groupingRoutes")
 const claimRoutes=require("./routes/TripRoutes");
 const shopRoutes=require("./routes/shopRoutes");
 const mapRoutes=require("./routes/mapRoutes");
+const demoRoutes=require("./routes/demoRoutes");
 
 app.use("/api/auth",authRoutes);
 app.use("/api/admin",adminControllerRoutes);
@@ -33,5 +34,6 @@ app.use("/api/group",groupRoutes);
 app.use("/api/trip-blocks",claimRoutes);
 app.use("/api/shop",shopRoutes);
 app.use("/api/map",mapRoutes);
+app.use("/api/demo",demoRoutes);
 
 module.exports=app;
