@@ -127,9 +127,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token && !isPublicRoute) {
       router.push("/login");
     } else if (token && isAuthOnlyRoute) {
+      if (user?.role === "shopkeeper") {
+        router.push("/shopkeeper");
+      } else {
+        router.push("/");
+      }
+    } else if (token && pathname === "/" && user?.role === "shopkeeper") {
+      router.push("/shopkeeper");
+    } else if (token && pathname === "/shopkeeper" && user && user.role !== "shopkeeper") {
       router.push("/");
     }
-  }, [token, pathname, isLoading, router]);
+  }, [token, pathname, isLoading, router, user]);
 
   const login = async (email: string, password: string) => {
     setError(null);
@@ -138,7 +146,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       setUser(data.user);
       localStorage.setItem("farmlink_user", JSON.stringify(data.user));
-      router.push("/");
+      if (data.user.role === "shopkeeper") {
+        router.push("/shopkeeper");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { mapApi, tripApi } from "@/lib/api";
 import { MapDataResponse, MapOrder, MapTripBlock } from "@/types/map";
@@ -196,8 +197,15 @@ function Divider() {
 ──────────────────────────────────────────────────── */
 export default function Home() {
   const { user, token, isLoading } = useAuth();
+  const router = useRouter();
   const { status: realtimeStatus, subscribe } = useRealtime();
   const [activeTab, setActiveTab] = useState("overview");
+
+  useEffect(() => {
+    if (!isLoading && user?.role === "shopkeeper") {
+      router.push("/shopkeeper");
+    }
+  }, [isLoading, user, router]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [actFilter, setActFilter] = useState("ALL");
   const [dashboardData, setDashboardData] = useState<MapDataResponse["data"] | null>(null);
