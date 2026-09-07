@@ -188,11 +188,11 @@ exports.getDashboard = async (req, res) => {
             ? Math.round(((acceptedTrips + completedTrips) / totalOffered) * 100)
             : 100;
 
-        // Unread notifications for this demo user
+        // Unread notifications for this shopkeeper
         const unreadNotifications = await Notification.countDocuments({
             user: req.user.userId || req.user.user,
             isRead: false,
-            isDemo: true,
+            isDemo: shop.isDemo ? true : { $ne: true },
         });
 
         return res.status(200).json({
@@ -207,7 +207,7 @@ exports.getDashboard = async (req, res) => {
                 unreadNotifications,
                 shopName: shop.shopName,
                 village: shop.village,
-                isDemo: true,
+                isDemo: Boolean(shop.isDemo),
             },
         });
     } catch (error) {
@@ -416,14 +416,25 @@ exports.getRevenue = async (req, res) => {
 };
 
 /**
- * GET /api/shop/notifications — Shopkeeper demo notifications
+ * Helper to determine whether the requesting shopkeeper is a demo user
+ */
+const isUserDemo = async (req) => {
+    if (req.user.isDemo || req.user.demo) return true;
+    const userId = req.user.userId || req.user.user;
+    const user = await User.findById(userId);
+    return Boolean(user?.isDemo || user?.email === "demo.shopkeeper@farmlink.local");
+};
+
+/**
+ * GET /api/shop/notifications — Shopkeeper notifications (strictly isolated for demo vs real)
  */
 exports.getNotifications = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user;
+        const isDemo = await isUserDemo(req);
         const notifications = await Notification.find({
             user: userId,
-            isDemo: true,
+            isDemo: isDemo ? true : { $ne: true },
         }).sort("-createdAt");
 
         const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -448,9 +459,10 @@ exports.markNotificationRead = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user;
         const { id } = req.params;
+        const isDemo = await isUserDemo(req);
 
         const notif = await Notification.findOneAndUpdate(
-            { _id: id, user: userId, isDemo: true },
+            { _id: id, user: userId, isDemo: isDemo ? true : { $ne: true } },
             { isRead: true },
             { new: true }
         );
@@ -477,8 +489,10 @@ exports.markNotificationRead = async (req, res) => {
 exports.markAllNotificationsRead = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user;
+        const isDemo = await isUserDemo(req);
+
         await Notification.updateMany(
-            { user: userId, isDemo: true, isRead: false },
+            { user: userId, isDemo: isDemo ? true : { $ne: true }, isRead: false },
             { $set: { isRead: true } }
         );
 

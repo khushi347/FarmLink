@@ -166,6 +166,7 @@ const handlewebHook = async (req, res) => {
             const shopIds = await findShopsByService(order.serviceType);
             console.log("11. shop lookup completed", shopIds);
             eventBus.emit("new_order", { order, shopIds });
+            eventBus.emit("order_confirmed", { order, farmer, isDemo: order.isDemo });
 
             console.log("12. pending deletion starting");
             await PendingWhatsAppOrder.deleteOne({ _id: pending._id });
@@ -221,7 +222,7 @@ const handlewebHook = async (req, res) => {
         }
 
         console.log("24. pending save starting");
-        await savePendingOrder({
+        const pending = await savePendingOrder({
             farmerId: farmer._id,
             whatsappNumber: farmer.whatsappNumber,
             source,
@@ -234,6 +235,13 @@ const handlewebHook = async (req, res) => {
             language: aiData.language || "English",
         });
         console.log("25. pending save completed");
+
+        eventBus.emit("order_received", {
+            farmer,
+            pendingOrder: pending,
+            aiData,
+            isDemo: Boolean(farmer.isDemo),
+        });
 
         console.log("26. sending response");
         const locationMessage = getLocalizedMessage(aiData.language || "English", "location");

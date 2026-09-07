@@ -116,6 +116,12 @@ export const mapApi = {
 export const tripApi = {
   claim: (tripId: string, token?: string) =>
     request<{ success: boolean; message: string; trip: any }>(`/trip-blocks/${tripId}/claim`, { method: "POST" }, token),
+  outForDelivery: (tripId: string, token?: string) =>
+    request<{ success: boolean; message: string; trip: any }>(`/trip-blocks/${tripId}/out-for-delivery`, { method: "POST" }, token),
+  cancel: (tripId: string, reason?: string, token?: string) =>
+    request<{ success: boolean; message: string; trip: any }>(`/trip-blocks/${tripId}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }, token),
+  sendReminder: (tripId: string, message?: string, token?: string) =>
+    request<{ success: boolean; message: string }>(`/trip-blocks/${tripId}/reminder`, { method: "POST", body: JSON.stringify({ message }) }, token),
   complete: (tripId: string, token?: string) =>
     request<{ success: boolean; message: string; trip: any }>(`/trip-blocks/${tripId}/complete`, { method: "POST" }, token),
 };

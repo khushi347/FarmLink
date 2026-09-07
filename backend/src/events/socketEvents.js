@@ -126,6 +126,63 @@ const setupSocketEvents = (io) => {
             io.to("admin").emit("trip_completed", payload);
         }
     });
+
+    eventBus.on("out_for_delivery", ({ tripId, shopId, isDemo }) => {
+        const payload = {
+            eventId: crypto.randomUUID(),
+            occurredAt: new Date().toISOString(),
+            tripId,
+            shopId,
+            isDemo: !!isDemo,
+        };
+
+        if (shopId) {
+            io.to(`shop:${shopId}`).emit("out_for_delivery", payload);
+        }
+        if (isDemo) {
+            io.to("demo_shopkeepers").emit("out_for_delivery", payload);
+        } else {
+            io.to("admin").emit("out_for_delivery", payload);
+        }
+    });
+
+    eventBus.on("trip_cancelled", ({ tripId, shopId, isDemo, reason }) => {
+        const payload = {
+            eventId: crypto.randomUUID(),
+            occurredAt: new Date().toISOString(),
+            tripId,
+            shopId,
+            reason: reason || "Trip cancelled",
+            isDemo: !!isDemo,
+        };
+
+        if (shopId) {
+            io.to(`shop:${shopId}`).emit("trip_cancelled", payload);
+        }
+        if (isDemo) {
+            io.to("demo_shopkeepers").emit("trip_cancelled", payload);
+        } else {
+            io.to("admin").emit("trip_cancelled", payload);
+        }
+    });
+
+    eventBus.on("delivery_reminder", ({ tripId, shopId, isDemo, reminderText }) => {
+        const payload = {
+            eventId: crypto.randomUUID(),
+            occurredAt: new Date().toISOString(),
+            tripId,
+            shopId,
+            reminderText: reminderText || "Active delivery reminder",
+            isDemo: !!isDemo,
+        };
+
+        if (shopId) {
+            io.to(`shop:${shopId}`).emit("delivery_reminder", payload);
+        }
+        if (isDemo) {
+            io.to("demo_shopkeepers").emit("delivery_reminder", payload);
+        }
+    });
 };
 
 module.exports = setupSocketEvents;

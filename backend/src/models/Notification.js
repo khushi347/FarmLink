@@ -4,7 +4,20 @@ const notificationSchema=new mongoose.Schema({
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+      default: null,
+    },
+
+    farmer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Farmer",
+      default: null,
+    },
+
+    recipientType: {
+      type: String,
+      enum: ["User", "Farmer"],
+      default: "User",
     },
 
     title: {
@@ -13,7 +26,7 @@ const notificationSchema=new mongoose.Schema({
       trim: true,
     },
 
-     message: {
+    message: {
       type: String,
       required: true,
       trim: true,
@@ -23,6 +36,18 @@ const notificationSchema=new mongoose.Schema({
       type: String,
       enum: ["Order", "TripBlock", "System"],
       required: true,
+    },
+
+    channel: {
+      type: String,
+      enum: ["WHATSAPP", "SOCKET_IO", "IN_APP", "SYSTEM"],
+      default: "IN_APP",
+    },
+
+    deliveryStatus: {
+      type: String,
+      enum: ["PENDING", "SENT", "DELIVERED", "FAILED"],
+      default: "SENT",
     },
 
     isRead: {
@@ -42,7 +67,7 @@ const notificationSchema=new mongoose.Schema({
     },
 },
 {
-    timestamps:true,
+    timestamps: true,
 })
 
 const Notification = mongoose.model("Notification", notificationSchema);

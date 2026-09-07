@@ -13,20 +13,10 @@ const completeTrip = async (req, res) => {
 
         const trip = await completeTripService(tripId, shopId);
 
-        // Create notification for this shopkeeper
-        const code = `Trip #${trip._id.toString().slice(-4).toUpperCase()}`;
-        await Notification.create({
-            user: userId,
-            title: "Delivery Completed",
-            message: `${code} completed successfully. ₹${trip.estimatedEarnings || 0} credited to your revenue.`,
-            type: "TripBlock",
-            isDemo: trip.isDemo || false,
-            metadata: { tripId: trip._id, code, earnings: trip.estimatedEarnings },
-        });
-
         eventBus.emit("trip_completed", {
             tripId: trip._id,
             shopId: trip.assignedShop,
+            userId,
             isDemo: trip.isDemo || false,
         });
 

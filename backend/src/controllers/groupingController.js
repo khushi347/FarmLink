@@ -12,10 +12,16 @@ const groupOrderController=async(req,res)=>{
             const {serviceType}=result.tripBlock;
             const shopIds=await findShopsByService(serviceType);
 
+            eventBus.emit("order_grouped", {
+                tripBlock: result.tripBlock,
+                orderIds: result.tripBlock.orders,
+                isDemo: Boolean(result.tripBlock.isDemo),
+            });
+
             eventBus.emit("trip_created",{
                 tripBlock:result.tripBlock,
                 shopIds
-            })
+            });
         }
 
         res.status(200).json(result);

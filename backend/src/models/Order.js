@@ -74,6 +74,7 @@ const orderSchema=new mongoose.Schema({
             "Pending",
             "Grouped",
             "Accepted",
+            "Out for Delivery",
             "Completed",
             "Cancelled"
         ],

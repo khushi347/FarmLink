@@ -30,6 +30,12 @@ const createOrder = async (req, res) => {
             shopIds}
         );
 
+        eventBus.emit("order_confirmed", {
+            order,
+            farmerId,
+            isDemo: Boolean(order.isDemo),
+        });
+
         res.status(201).json({
             success: true,
             message: "Order created successfully",

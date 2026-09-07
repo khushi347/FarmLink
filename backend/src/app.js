@@ -14,6 +14,9 @@ app.use(cookieParser());
 app.use(cors());
 app.use(express.urlencoded({extended:false}));
 
+const setupNotificationListeners = require("./events/notificationListeners");
+setupNotificationListeners();
+
 const authRoutes=require("./routes/authRoutes");
 const adminControllerRoutes=require("./routes/adminControllerRoutes")
 const webhookRoutes=require("./routes/webhookRoutes")
