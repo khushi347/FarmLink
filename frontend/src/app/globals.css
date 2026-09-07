@@ -314,6 +314,19 @@ button, input, select, textarea { font: inherit; }
   100% { transform: scale(1.6); opacity: 0; }
 }
 
+.farmlink-route-stop-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.farmlink-route-stop-marker:hover {
+  transform: scale(1.15);
+  z-index: 1000 !important;
+}
+
 /* Custom Leaflet popup */
 .farmlink-map-container .leaflet-popup-content-wrapper {
   background: #ffffff;

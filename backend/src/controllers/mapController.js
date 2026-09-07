@@ -3,26 +3,7 @@ const Farmer = require("../models/Farmer");
 const Shop = require("../models/Shop");
 const Order = require("../models/Order");
 const TripBlock = require("../models/TripBlock");
-
-/**
- * Helper to validate GeoJSON point coordinates
- * @param {Array} coords - [longitude, latitude]
- * @returns {boolean}
- */
-const isValidCoordinates = (coords) => {
-    if (!Array.isArray(coords) || coords.length < 2) return false;
-    const [lng, lat] = coords;
-    return (
-        typeof lng === "number" &&
-        typeof lat === "number" &&
-        Number.isFinite(lng) &&
-        Number.isFinite(lat) &&
-        lat >= -90 &&
-        lat <= 90 &&
-        lng >= -180 &&
-        lng <= 180
-    );
-};
+const { isValidCoordinates, buildTripRoute } = require("../utils/geoUtils");
 
 /**
  * Controller to fetch all geographic data for the FarmLink map.
@@ -148,6 +129,11 @@ exports.getMapData = async (req, res) => {
                                 products: o.products || [],
                                 serviceType: o.serviceType,
                                 status: o.status,
+                                farmer: o.farmer ? {
+                                    id: o.farmer._id,
+                                    name: o.farmer.name || "Local Farmer",
+                                    phone: o.farmer.whatsappNumber,
+                                } : null,
                                 coordinates: o.location && isValidCoordinates(o.location.coordinates)
                                     ? [o.location.coordinates[1], o.location.coordinates[0]]
                                     : null
@@ -165,6 +151,9 @@ exports.getMapData = async (req, res) => {
                     ];
                 }
 
+                // Build ordered sequential delivery route and waypoints (Shop -> Customer 1 -> Customer 2 ...)
+                const routeInfo = buildTripRoute(trip.assignedShop, trip.orders, [cLng, cLat]);
+
                 tripBlocks.push({
                     id: trip._id,
                     code: `TB-${trip._id.toString().slice(-4).toUpperCase()}`,
@@ -179,6 +168,10 @@ exports.getMapData = async (req, res) => {
                     orderCount: populatedOrders.length,
                     totalQuantity: totalWeightOrQty,
                     orders: populatedOrders,
+                    distanceKm: routeInfo.distanceKm,
+                    deliveryRegion: routeInfo.deliveryRegion,
+                    waypoints: routeInfo.waypoints,
+                    routePolyline: routeInfo.routePolyline,
                     assignedShop: trip.assignedShop ? {
                         id: trip.assignedShop._id,
                         name: trip.assignedShop.shopName,

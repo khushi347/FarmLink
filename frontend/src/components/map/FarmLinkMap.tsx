@@ -229,27 +229,83 @@ export default function FarmLinkMap({
         const isSelected =
           selectedEntity?.type === "tripblock" && selectedEntity.data.id === tb.id;
 
-        // Draw corridor lines connecting order harvest origins to aggregation center
-        if (tb.corridor?.originPoints && tb.corridor.originPoints.length > 0) {
-          tb.corridor.originPoints.forEach((origin) => {
-            const polyline = L.polyline([origin, [cLat, cLng]], {
-              color: isSelected ? "#c26d40" : "#426890",
-              weight: isSelected ? 3 : 2,
-              opacity: 0.65,
-              dashArray: "4, 6",
-            });
-            layerGroup.addLayer(polyline);
+        // 1. Draw highlighted sequential delivery route when TripBlock is selected
+        if (isSelected && tb.routePolyline && tb.routePolyline.length > 1) {
+          // White background stroke for maximum contrast
+          const routeUnderlay = L.polyline(tb.routePolyline, {
+            color: "#ffffff",
+            weight: 7,
+            opacity: 0.95,
           });
-        }
+          layerGroup.addLayer(routeUnderlay);
 
-        // Draw delivery line to destination shop if assigned
-        if (tb.corridor?.destinationPoint) {
-          const destLine = L.polyline([[cLat, cLng], tb.corridor.destinationPoint], {
-            color: "#1f6e48",
-            weight: 3,
-            opacity: 0.85,
+          // Primary sequential delivery polyline: Shop -> Customer 1 -> Customer 2 ...
+          const routeLine = L.polyline(tb.routePolyline, {
+            color: "#c26d40",
+            weight: 4,
+            opacity: 1.0,
+            lineJoin: "round",
           });
-          layerGroup.addLayer(destLine);
+          layerGroup.addLayer(routeLine);
+
+          // Render numbered delivery stop markers for each customer waypoint
+          if (Array.isArray(tb.waypoints)) {
+            tb.waypoints.forEach((wp) => {
+              if (wp.type === "customer") {
+                const stopNum = wp.sequence - 1;
+                const stopIcon = L.divIcon({
+                  className: "farmlink-route-stop-marker",
+                  iconSize: [22, 22],
+                  iconAnchor: [11, 11],
+                  popupAnchor: [0, -12],
+                  html: `
+                    <div style="width: 22px; height: 22px; border-radius: 50%; background: #ffffff; border: 2px solid #c26d40; color: #c26d40; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
+                      ${stopNum}
+                    </div>
+                  `,
+                });
+
+                const stopMarker = L.marker(wp.coordinates, {
+                  icon: stopIcon,
+                  zIndexOffset: 600,
+                });
+
+                stopMarker.bindPopup(`
+                  <div style="padding: 6px 8px; font-family: sans-serif; min-width: 140px;">
+                    <div style="font-size: 9px; font-weight: 800; color: #c26d40; text-transform: uppercase;">Stop ${stopNum} · Customer</div>
+                    <div style="font-size: 12px; font-weight: 700; color: #1c1e24; margin-top: 2px;">${wp.name}</div>
+                    <div style="font-size: 11px; color: #5a5f6b;">📍 ${wp.village || 'Delivery Location'}</div>
+                    ${wp.itemsSummary ? `<div style="font-size: 10px; color: #8c8e96; margin-top: 2px;">${wp.itemsSummary}</div>` : ''}
+                  </div>
+                `);
+
+                layerGroup.addLayer(stopMarker);
+              }
+            });
+          }
+        } else {
+          // Standard overview: corridor lines connecting order harvest origins to aggregation center
+          if (tb.corridor?.originPoints && tb.corridor.originPoints.length > 0) {
+            tb.corridor.originPoints.forEach((origin) => {
+              const polyline = L.polyline([origin, [cLat, cLng]], {
+                color: "#426890",
+                weight: 2,
+                opacity: selectedEntity ? 0.25 : 0.65,
+                dashArray: "4, 6",
+              });
+              layerGroup.addLayer(polyline);
+            });
+          }
+
+          // Delivery line to destination shop if assigned
+          if (tb.corridor?.destinationPoint) {
+            const destLine = L.polyline([[cLat, cLng], tb.corridor.destinationPoint], {
+              color: "#1f6e48",
+              weight: 3,
+              opacity: selectedEntity ? 0.3 : 0.85,
+            });
+            layerGroup.addLayer(destLine);
+          }
         }
 
         // Center Location Marker
@@ -278,7 +334,7 @@ export default function FarmLinkMap({
             <span style="font-size: 9px; font-weight: 700; background: #fff4ec; color: #b84a0a; border: 1px solid #f5c4a0; padding: 1px 5px; border-radius: 4px;">${tb.status}</span>
           </div>
           <p style="font-size: 12px; font-weight: 600; color: #1c1e24; margin: 0 0 2px 0;">${tb.serviceType}</p>
-          <p style="font-size: 11px; color: #5a5f6b; margin: 0 0 4px 0;">Aggregation Center · ${tb.orderCount} Orders</p>
+          <p style="font-size: 11px; color: #5a5f6b; margin: 0 0 4px 0;">${tb.orderCount} Deliveries · ${tb.distanceKm ? `${tb.distanceKm} km` : `${tb.totalQuantity} units`}</p>
           ${
             tb.assignedShop
               ? `<p style="font-size: 10px; color: #1f6e48; font-weight: 600; margin: 0;">Dest: ${tb.assignedShop.name} (${tb.assignedShop.village})</p>`
@@ -317,6 +373,19 @@ export default function FarmLinkMap({
     } else if (selectedEntity.type === "order") {
       targetCoords = selectedEntity.data.coordinates;
     } else if (selectedEntity.type === "tripblock") {
+      // Fit to entire sequential route if available
+      if (
+        selectedEntity.data.routePolyline &&
+        selectedEntity.data.routePolyline.length > 1
+      ) {
+        try {
+          const routeBounds = L.latLngBounds(selectedEntity.data.routePolyline);
+          map.fitBounds(routeBounds, { padding: [60, 60], maxZoom: 15 });
+          return;
+        } catch (e) {
+          // Fallback to center coordinates below
+        }
+      }
       targetCoords = selectedEntity.data.centerCoordinates;
     }
 

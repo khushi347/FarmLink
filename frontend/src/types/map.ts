@@ -53,12 +53,29 @@ export interface MapOrder {
   type: "order";
 }
 
+export interface MapTripWaypoint {
+  sequence: number;
+  type: "shop" | "customer";
+  name: string;
+  village?: string;
+  coordinates: LatLngTuple; // [latitude, longitude]
+  rawCoordinates?: [number, number]; // [longitude, latitude]
+  details?: string;
+  orderId?: string | null;
+  orderCode?: string;
+  serviceType?: string;
+  itemsSummary?: string;
+  products?: MapProduct[];
+  status?: string;
+}
+
 export interface MapPopulatedOrder {
   id: string;
   code: string;
   products: MapProduct[];
   serviceType?: string;
   status?: string;
+  farmer?: MapFarmer | null;
   coordinates?: LatLngTuple | null;
 }
 
@@ -72,7 +89,7 @@ export interface MapTripBlock {
   id: string;
   code: string;
   serviceType: string;
-  status: "OPEN" | "Pending" | "CLAIMED" | "LOCKED" | "IN DELIVERY" | "COMPLETED";
+  status: "OPEN" | "Pending" | "CLAIMED" | "LOCKED" | "IN DELIVERY" | "COMPLETED" | "OUT_FOR_DELIVERY" | "CANCELLED";
   scheduledDate?: string;
   estimatedEarnings: number;
   completedAt?: string | null;
@@ -81,6 +98,10 @@ export interface MapTripBlock {
   rawCenterCoordinates: [number, number];
   orderCount: number;
   totalQuantity: number;
+  distanceKm?: number;
+  deliveryRegion?: string;
+  waypoints?: MapTripWaypoint[];
+  routePolyline?: LatLngTuple[];
   orders: MapPopulatedOrder[];
   assignedShop?: {
     id: string;

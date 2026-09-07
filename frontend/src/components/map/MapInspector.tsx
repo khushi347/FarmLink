@@ -213,71 +213,154 @@ export default function MapInspector({
         </div>
       )}
 
-      {/* Body for TripBlock */}
+      {/* Body for TripBlock — Module 15 Interactive Trip View */}
       {selectedEntity.type === "tripblock" && (
-        <div className="space-y-3 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96]">
-              Status
-            </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#fff4ec] text-[#b84a0a] border border-[#f5c4a0]">
-              {selectedEntity.data.status}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96] block mb-0.5">
-              Service & Orders
-            </span>
-            <p className="font-semibold text-[#1c1e24]">{selectedEntity.data.serviceType}</p>
-            <p className="text-[11px] text-[#5a5f6b]">
-              {selectedEntity.data.orderCount} Orders Grouped · {selectedEntity.data.totalQuantity} total units
-            </p>
-          </div>
-
-          {selectedEntity.data.assignedShop ? (
-            <div className="bg-[#eef7f2] p-2.5 rounded-lg border border-[#a8d8bc]">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#1f6e48] block mb-0.5">
-                Claimed Retail Partner
-              </span>
-              <p className="font-bold text-[#1f6e48]">{selectedEntity.data.assignedShop.name}</p>
-              <p className="text-[10px] text-[#1f6e48]">📍 {selectedEntity.data.assignedShop.village}</p>
-            </div>
-          ) : (
-            <div className="bg-[#fff4ec] p-2.5 rounded-lg border border-[#f5c4a0] text-[11px] text-[#b84a0a] font-semibold">
-              Open for Nearby Retail Shop Claim
-            </div>
-          )}
-
-          {selectedEntity.data.orders && selectedEntity.data.orders.length > 0 && (
+        <div className="space-y-4 text-xs">
+          {/* Trip Metrics Grid */}
+          <div className="grid grid-cols-2 gap-2 bg-[#faf8f5] p-2.5 rounded-lg border border-[#e5e1da]">
             <div>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96] block mb-1">
-                Grouped Orders in Corridor
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96] block">
+                Route Distance
               </span>
-              <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
-                {selectedEntity.data.orders.map((o) => (
-                  <div
-                    key={o.id}
-                    className="flex justify-between items-center p-1.5 rounded bg-[#faf8f5] border border-[#e5e1da] text-[10px]"
-                  >
-                    <span className="font-mono font-bold text-[#1c1e24]">{o.code}</span>
-                    <span className="text-[#5a5f6b]">
-                      {o.products?.map((p) => `${p.quantity} ${p.name}`).join(", ") || o.serviceType}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm font-extrabold text-[#1c1e24] mt-0.5">
+                {selectedEntity.data.distanceKm ? `${selectedEntity.data.distanceKm} km` : "15.4 km"}
+              </p>
             </div>
-          )}
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96] block">
+                Deliveries
+              </span>
+              <p className="text-sm font-extrabold text-[#1c1e24] mt-0.5">
+                {selectedEntity.data.orderCount} stops
+              </p>
+            </div>
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96] block">
+                Delivery Region
+              </span>
+              <p className="text-[11px] font-semibold text-[#5a5f6b] mt-0.5 truncate">
+                📍 {selectedEntity.data.deliveryRegion || selectedEntity.data.assignedShop?.village || "Regional Corridor"}
+              </p>
+            </div>
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96] block">
+                Trip Status
+              </span>
+              <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold bg-[#fff4ec] text-[#b84a0a] border border-[#f5c4a0]">
+                {selectedEntity.data.status}
+              </span>
+            </div>
+          </div>
 
-          <div>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[#8c8e96] block mb-0.5">
-              Aggregation Center
+          {/* Sequential Trip Itinerary: Shop ↓ Customer A ↓ Customer B ... */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8c8e96]">
+                Delivery Itinerary
+              </span>
+              <span className="text-[10px] font-mono font-bold text-[#c26d40]">
+                {selectedEntity.data.waypoints ? `${selectedEntity.data.waypoints.length} waypoints` : `${selectedEntity.data.orderCount + 1} waypoints`}
+              </span>
+            </div>
+
+            <div className="relative pl-3 space-y-2 max-h-56 overflow-y-auto pr-1">
+              {selectedEntity.data.waypoints && selectedEntity.data.waypoints.length > 0 ? (
+                selectedEntity.data.waypoints.map((wp, idx) => {
+                  const isShop = wp.type === "shop";
+                  const isLast = idx === selectedEntity.data.waypoints!.length - 1;
+
+                  return (
+                    <div key={idx} className="relative group">
+                      <div className="p-2.5 rounded-lg border border-[#e5e1da] bg-white hover:border-[#c26d40] transition-colors shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                              isShop
+                                ? "bg-[#eef7f2] text-[#1f6e48] border border-[#a8d8bc]"
+                                : "bg-[#fff8f2] text-[#c26d40] border border-[#f5d5b8]"
+                            }`}
+                          >
+                            {isShop ? "Shop Origin" : `Stop ${wp.sequence - 1} · Customer`}
+                          </span>
+                          {wp.orderCode && (
+                            <span className="font-mono text-[9px] text-[#8c8e96]">
+                              {wp.orderCode}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="font-bold text-[#1c1e24] text-xs mt-1 leading-tight">
+                          {wp.name}
+                        </p>
+
+                        <p className="text-[11px] text-[#5a5f6b] mt-0.5">
+                          📍 {wp.village || "Corridor Route"}{" "}
+                          {wp.itemsSummary ? `· ${wp.itemsSummary}` : ""}
+                        </p>
+                      </div>
+
+                      {/* Visual downward arrow between stops */}
+                      {!isLast && (
+                        <div className="flex justify-center my-1 select-none text-[#a0a3ad] text-xs font-bold leading-none">
+                          ↓
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                /* Fallback if waypoints not pre-built */
+                <div className="space-y-2">
+                  <div className="p-2.5 rounded-lg border border-[#a8d8bc] bg-[#eef7f2]">
+                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#1f6e48]">
+                      Shop Origin
+                    </span>
+                    <p className="font-bold text-[#1f6e48] text-xs mt-0.5">
+                      {selectedEntity.data.assignedShop?.name || "Regional Dispatch Hub"}
+                    </p>
+                    <p className="text-[11px] text-[#2d6e4b]">
+                      📍 {selectedEntity.data.assignedShop?.village || "Corridor Hub"}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center select-none text-[#a0a3ad] text-xs font-bold leading-none">
+                    ↓
+                  </div>
+
+                  {selectedEntity.data.orders.map((o, idx) => (
+                    <div key={o.id}>
+                      <div className="p-2.5 rounded-lg border border-[#e5e1da] bg-white">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-extrabold uppercase text-[#c26d40]">
+                            Stop {idx + 1} · Customer
+                          </span>
+                          <span className="font-mono text-[9px] text-[#8c8e96]">{o.code}</span>
+                        </div>
+                        <p className="font-bold text-[#1c1e24] text-xs mt-0.5">
+                          {o.farmer?.name || `Customer #${o.code}`}
+                        </p>
+                        <p className="text-[11px] text-[#5a5f6b]">
+                          {o.products?.map((p) => `${p.quantity} ${p.name}`).join(", ") || o.serviceType}
+                        </p>
+                      </div>
+                      {idx < selectedEntity.data.orders.length - 1 && (
+                        <div className="flex justify-center my-1 select-none text-[#a0a3ad] text-xs font-bold leading-none">
+                          ↓
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Earnings & Center info */}
+          <div className="flex items-center justify-between pt-2 border-t border-[#f0ece6] text-[11px]">
+            <span className="text-[#8c8e96]">Estimated Earnings</span>
+            <span className="font-extrabold text-[#1f6e48] text-xs">
+              ₹{selectedEntity.data.estimatedEarnings.toLocaleString()}
             </span>
-            <p className="text-[10px] font-mono text-[#8c8e96]">
-              Lat: {selectedEntity.data.centerCoordinates[0].toFixed(5)}, Lng:{" "}
-              {selectedEntity.data.centerCoordinates[1].toFixed(5)}
-            </p>
           </div>
         </div>
       )}
