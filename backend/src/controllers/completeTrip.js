@@ -2,6 +2,7 @@ const completeTripService = require("../services/completeTripService");
 const eventBus = require("../events/eventBus");
 const Shop = require("../models/Shop");
 const Notification = require("../models/Notification");
+const { InvalidStateTransitionError } = require("../services/lifecycleService");
 
 const completeTrip = async (req, res) => {
     try {
@@ -26,6 +27,13 @@ const completeTrip = async (req, res) => {
             trip,
         });
     } catch (error) {
+        if (error instanceof InvalidStateTransitionError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+
         return res.status(500).json({
             success: false,
             message: error.message,

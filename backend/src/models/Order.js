@@ -71,14 +71,13 @@ const orderSchema=new mongoose.Schema({
     status:{
         type:String,
         enum:[
-            "Pending",
-            "Grouped",
-            "Accepted",
-            "Out for Delivery",
-            "Completed",
-            "Cancelled"
+            "RECEIVED",
+            "GROUPED",
+            "CLAIMED",
+            "COMPLETED",
+            "CANCELLED"
         ],
-        default:"Pending"
+        default:"RECEIVED"
     },
 
     audioUrl:{

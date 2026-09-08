@@ -35,8 +35,8 @@ const tripBlockSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["OPEN", "CLAIMED", "OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"],
-      default: "OPEN",
+      enum: ["CREATED", "CLAIMED", "COMPLETED", "CANCELLED"],
+      default: "CREATED",
     },
 
     completedAt: {

@@ -34,7 +34,7 @@ export default function ShopTripCard({
   justClaimed = false,
 }: ShopTripCardProps) {
   const [showDetails, setShowDetails] = useState(false);
-  const isAvailable = trip.status === "OPEN";
+  const isAvailable = trip.status === "CREATED" || trip.status === "OPEN";
   const isClaimed = trip.status === "CLAIMED" || justClaimed;
   const isCompleted = trip.status === "COMPLETED";
 

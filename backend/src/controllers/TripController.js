@@ -3,6 +3,13 @@ const eventBus = require("../events/eventBus");
 const Shop = require("../models/Shop");
 const TripBlock = require("../models/TripBlock");
 const Order = require("../models/Order");
+const {
+    ORDER_STATUS,
+    TRIP_STATUS,
+    validateTripTransition,
+    withTransaction,
+    InvalidStateTransitionError,
+} = require("../services/lifecycleService");
 
 /**
  * POST /api/trip-blocks/:tripId/claim — Claim an open trip block
@@ -31,8 +38,18 @@ const claimTrip = async (req, res) => {
             trip,
         });
     } catch (error) {
-        if (error.message === "Trip already claimed") {
+        if (
+            error.message === "Trip already claimed" ||
+            error.message === "Trip is no longer available"
+        ) {
             return res.status(409).json({
+                success: false,
+                message: error.message,
+            });
+        }
+
+        if (error instanceof InvalidStateTransitionError) {
+            return res.status(400).json({
                 success: false,
                 message: error.message,
             });
@@ -46,54 +63,13 @@ const claimTrip = async (req, res) => {
 };
 
 /**
- * POST /api/trip-blocks/:tripId/out-for-delivery — Mark a claimed trip as Out for Delivery
+ * POST /api/trip-blocks/:tripId/out-for-delivery — Deprecated in Module 16
  */
 const outForDelivery = async (req, res) => {
-    try {
-        const { tripId } = req.params;
-        const userId = req.user.userId || req.user.user;
-        const shop = await Shop.findOne({ owner: userId });
-        if (!shop) return res.status(403).json({ success: false, message: "Shop not found" });
-
-        const trip = await TripBlock.findOne({
-            _id: tripId,
-            assignedShop: shop._id,
-            status: { $in: ["CLAIMED", "OPEN"] },
-        });
-
-        if (!trip) {
-            return res.status(404).json({
-                success: false,
-                message: "Trip not found or not assigned to your shop",
-            });
-        }
-
-        trip.status = "OUT_FOR_DELIVERY";
-        await trip.save();
-
-        await Order.updateMany(
-            { _id: { $in: trip.orders } },
-            { $set: { status: "Out for Delivery" } }
-        );
-
-        eventBus.emit("out_for_delivery", {
-            tripId: trip._id,
-            shopId: trip.assignedShop,
-            userId,
-            isDemo: trip.isDemo || false,
-        });
-
-        return res.status(200).json({
-            success: true,
-            message: "Trip is now out for delivery",
-            trip,
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-    }
+    return res.status(400).json({
+        success: false,
+        message: "The 'OUT_FOR_DELIVERY' step is deprecated and removed from the FarmLink lifecycle. Trips move directly from CLAIMED to COMPLETED.",
+    });
 };
 
 /**
@@ -106,27 +82,37 @@ const cancelTrip = async (req, res) => {
         const shop = await Shop.findOne({ owner: userId });
         if (!shop) return res.status(403).json({ success: false, message: "Shop not found" });
 
-        const trip = await TripBlock.findOne({
-            _id: tripId,
-            assignedShop: shop._id,
-            status: { $in: ["OPEN", "CLAIMED", "OUT_FOR_DELIVERY"] },
-        });
+        const trip = await TripBlock.findById(tripId);
 
         if (!trip) {
             return res.status(404).json({
                 success: false,
-                message: "Trip not found or not eligible for cancellation",
+                message: "Trip not found",
             });
         }
 
-        const reason = req.body?.reason || "Cancelled by shopkeeper";
-        trip.status = "CANCELLED";
-        await trip.save();
+        if (trip.assignedShop && String(trip.assignedShop) !== String(shop._id)) {
+            return res.status(403).json({
+                success: false,
+                message: "Trip is not assigned to your shop",
+            });
+        }
 
-        await Order.updateMany(
-            { _id: { $in: trip.orders } },
-            { $set: { status: "Cancelled" } }
-        );
+        // Validate lifecycle transition (throws InvalidStateTransitionError if COMPLETED or CANCELLED)
+        validateTripTransition(trip.status, TRIP_STATUS.CANCELLED);
+
+        const reason = req.body?.reason || "Cancelled by shopkeeper";
+
+        await withTransaction(async (session) => {
+            trip.status = TRIP_STATUS.CANCELLED;
+            await trip.save({ session });
+
+            await Order.updateMany(
+                { _id: { $in: trip.orders } },
+                { $set: { status: ORDER_STATUS.CANCELLED } },
+                { session }
+            );
+        });
 
         eventBus.emit("trip_cancelled", {
             tripId: trip._id,
@@ -142,6 +128,13 @@ const cancelTrip = async (req, res) => {
             trip,
         });
     } catch (error) {
+        if (error instanceof InvalidStateTransitionError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+        }
+
         return res.status(500).json({
             success: false,
             message: error.message,

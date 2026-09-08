@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const { ORDER_STATUS } = require("./lifecycleService");
 
 const buildOrder = async ({
     farmerId,
@@ -50,7 +51,7 @@ const buildOrder = async ({
     requestedDate: deliveryDate ? new Date(deliveryDate) : null,
     transcript,
     audioUrl,
-    status: "Pending"
+    status: ORDER_STATUS.RECEIVED
     };
 
     const order = await Order.create(orderData);

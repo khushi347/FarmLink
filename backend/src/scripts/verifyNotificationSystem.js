@@ -153,7 +153,7 @@ const runVerification = async () => {
         serviceType: "Seeds",
         products: [{ name: "Wheat Seeds", quantity: 2, unit: "Bags" }],
         location: { type: "Point", coordinates: [77.41, 23.21] },
-        status: "Pending",
+        status: "RECEIVED",
         isDemo: false,
     });
 
@@ -161,7 +161,7 @@ const runVerification = async () => {
         orders: [testOrder._id],
         serviceType: "Seeds",
         scheduledDate: new Date(),
-        status: "OPEN",
+        status: "CREATED",
         centerLocation: { type: "Point", coordinates: [77.41, 23.21] },
         estimatedEarnings: 650,
         isDemo: false,

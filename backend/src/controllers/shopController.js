@@ -145,7 +145,7 @@ exports.getDashboard = async (req, res) => {
         // Count available demo trips (OPEN, unassigned, isDemo: true, demoSessionId: null)
         const available = await TripBlock.countDocuments({
             assignedShop: null,
-            status: "OPEN",
+            status: { $in: ["CREATED", "OPEN"] },
             isDemo: true,
             demoSessionId: null,
         });
@@ -227,7 +227,7 @@ exports.getAvailableTrips = async (req, res) => {
         const { serviceType } = req.query;
 
         const filter = {
-            status: "OPEN",
+            status: { $in: ["CREATED", "OPEN"] },
             assignedShop: null,
             isDemo: true, // Strict demo isolation
             demoSessionId: null, // Isolated from temporary visitor sessions

@@ -86,20 +86,21 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; border: string }>
   "LOCKED":               { bg: "#eef7f2", text: "#1f6e48", border: "#a8d8bc" },
   "IN DELIVERY":          { bg: "#edf4fb", text: "#234e72", border: "#a8c8e8" },
   "COMPLETED":            { bg: "#eef7f2", text: "#1a5e3a", border: "#96ccb0" },
+  "NEW INGESTION":        { bg: "#f2f4ff", text: "#3a4fa0", border: "#c8d0f5" },
 };
 
 const LIVE_STATUSES = new Set(["NEW", "IN DELIVERY", "AVAILABLE TO SHOPS"]);
 
-function orderWorkflowStatus(status: MapOrder["status"]): WorkflowStatus {
-  if (status === "Pending") return "READY FOR GROUPING";
-  if (status === "Grouped") return "ASSIGNED TO TRIPBLOCK";
-  if (status === "Accepted") return "IN DELIVERY";
-  if (status === "Completed") return "COMPLETED";
+function orderWorkflowStatus(status?: string): WorkflowStatus {
+  if (status === "RECEIVED" || status === "Pending") return "READY FOR GROUPING";
+  if (status === "GROUPED" || status === "Grouped") return "ASSIGNED TO TRIPBLOCK";
+  if (status === "CLAIMED" || status === "Accepted") return "IN DELIVERY";
+  if (status === "COMPLETED" || status === "Completed") return "COMPLETED";
   return "NEEDS REVIEW";
 }
 
 function tripWorkflowStatus(status: MapTripBlock["status"]): WorkflowStatus {
-  if (status === "OPEN" || status === "Pending") return "AVAILABLE TO SHOPS";
+  if (status === "CREATED" || status === "OPEN" || status === "Pending") return "AVAILABLE TO SHOPS";
   if (status === "CLAIMED" || status === "LOCKED") return "CLAIMED";
   if (status === "IN DELIVERY") return "IN DELIVERY";
   return "COMPLETED";

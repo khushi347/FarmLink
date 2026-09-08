@@ -148,7 +148,7 @@ export interface ShopTrip {
   orderCount: number;
   estimatedEarnings: number;
   serviceType: string;
-  status: "OPEN" | "CLAIMED" | "COMPLETED";
+  status: "CREATED" | "OPEN" | "CLAIMED" | "COMPLETED" | "CANCELLED";
   scheduledDate: string;
   claimedAt?: string;
   completedAt?: string;

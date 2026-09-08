@@ -91,7 +91,7 @@ const runVerification = async () => {
         assert(t.orderCount > 0, "Trip must have orderCount > 0");
         assert(t.estimatedEarnings > 0, "Trip must have estimatedEarnings > 0");
         assert(t.distanceKm > 0, "Trip must have distanceKm > 0");
-        assert.strictEqual(t.status, "OPEN", "Trip must be OPEN");
+        assert(t.status === "CREATED" || t.status === "OPEN", "Trip must be CREATED or OPEN");
         assert.strictEqual(t.isDemo, true, "Trip must be isDemo: true");
     });
     console.log("✓ Available trips loaded with required fields:", trips.map(t => `${t.code} (${t.village} · ₹${t.estimatedEarnings} · ${t.distanceKm}km)`));

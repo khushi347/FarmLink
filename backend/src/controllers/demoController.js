@@ -256,7 +256,7 @@ const runStep = async (req, res) => {
                 requestedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
                 transcript: fd.transcript,
                 audioUrl: null,
-                status: "Pending",
+                status: "RECEIVED",
                 isDemo: true,
                 demoSessionId: sessionId,
             });
@@ -300,7 +300,7 @@ const runStep = async (req, res) => {
                 requestedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
                 transcript: fd.transcript,
                 audioUrl: null,
-                status: "Pending",
+                status: "RECEIVED",
                 isDemo: true,
                 demoSessionId: sessionId,
             });
@@ -344,7 +344,7 @@ const runStep = async (req, res) => {
                 requestedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
                 transcript: fd.transcript,
                 audioUrl: null,
-                status: "Pending",
+                status: "RECEIVED",
                 isDemo: true,
                 demoSessionId: sessionId,
             });
@@ -381,16 +381,16 @@ const runStep = async (req, res) => {
                 serviceType: DEMO_SERVICE_TYPE,
                 scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
                 centerLocation,
-                status: "OPEN",
+                status: "CREATED",
                 estimatedEarnings: 1500,
                 isDemo: true,
                 demoSessionId: sessionId,
             });
 
-            // Update all demo orders to Grouped
+            // Update all demo orders to GROUPED
             await Order.updateMany(
                 { _id: { $in: orderIds } },
-                { $set: { status: "Grouped", tripBlock: tripBlock._id } }
+                { $set: { status: "GROUPED", tripBlock: tripBlock._id } }
             );
 
             session.tripBlockId = tripBlock._id;
@@ -414,7 +414,7 @@ const runStep = async (req, res) => {
         } else if (session.stage === "TRIPBLOCK_CREATED") {
             // Claim with the dedicated demo shop — no real shop or auth bypassed
             const tripBlock = await TripBlock.findOneAndUpdate(
-                { _id: session.tripBlockId, status: "OPEN", isDemo: true },
+                { _id: session.tripBlockId, status: { $in: ["CREATED", "OPEN"] }, isDemo: true },
                 { status: "CLAIMED", assignedShop: _demoShopId, claimedAt: new Date() },
                 { new: true }
             );
@@ -423,10 +423,10 @@ const runStep = async (req, res) => {
                 throw new Error("Demo TripBlock not available for claiming (may already be claimed)");
             }
 
-            // Update demo orders to Accepted
+            // Update demo orders to CLAIMED
             await Order.updateMany(
                 { _id: { $in: tripBlock.orders }, isDemo: true },
-                { $set: { status: "Accepted", assignedShop: _demoShopId } }
+                { $set: { status: "CLAIMED", assignedShop: _demoShopId } }
             );
 
             // Fire existing eventBus event
@@ -456,10 +456,10 @@ const runStep = async (req, res) => {
                 throw new Error("Demo TripBlock not available for completion");
             }
 
-            // Update demo orders to Completed
+            // Update demo orders to COMPLETED
             await Order.updateMany(
                 { _id: { $in: tripBlock.orders }, isDemo: true },
-                { $set: { status: "Completed" } }
+                { $set: { status: "COMPLETED" } }
             );
 
             // Fire existing eventBus event
@@ -700,9 +700,9 @@ const getMapData = async (req, res) => {
                 stats: {
                     totalShops: shops.length,
                     totalOrders: orders.length,
-                    pendingOrders: orders.filter((o) => o.status === "Pending").length,
-                    groupedOrders: orders.filter((o) => o.status === "Grouped").length,
-                    openTripBlocks: tripBlocks.filter((t) => t.status === "OPEN").length,
+                    pendingOrders: orders.filter((o) => o.status === "RECEIVED" || o.status === "Pending").length,
+                    groupedOrders: orders.filter((o) => o.status === "GROUPED" || o.status === "Grouped").length,
+                    openTripBlocks: tripBlocks.filter((t) => t.status === "CREATED" || t.status === "OPEN").length,
                     claimedTripBlocks: tripBlocks.filter((t) => t.status === "CLAIMED").length,
                     completedTripBlocks: tripBlocks.filter((t) => t.status === "COMPLETED").length,
                 },

@@ -89,7 +89,7 @@ export interface MapTripBlock {
   id: string;
   code: string;
   serviceType: string;
-  status: "OPEN" | "Pending" | "CLAIMED" | "LOCKED" | "IN DELIVERY" | "COMPLETED" | "OUT_FOR_DELIVERY" | "CANCELLED";
+  status: "CREATED" | "OPEN" | "Pending" | "CLAIMED" | "LOCKED" | "IN DELIVERY" | "COMPLETED" | "OUT_FOR_DELIVERY" | "CANCELLED";
   scheduledDate?: string;
   estimatedEarnings: number;
   completedAt?: string | null;

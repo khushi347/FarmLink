@@ -105,7 +105,7 @@ const seedShopkeeperDemo = async () => {
                     },
                     requestedDate: new Date(Date.now() + 86400000),
                     transcript: `${serviceType} order for ${village} field cluster`,
-                    status: status || "Grouped",
+                    status: status || "GROUPED",
                     assignedShop: assignedShopId || null,
                     isDemo: true,
                 });
@@ -116,14 +116,14 @@ const seedShopkeeperDemo = async () => {
 
         // 5. Seed Demo TripBlocks
 
-        // Trip 1: OPEN Available Trip in Rampura (Trip #245)
-        const trip1Orders = await createDemoOrders(6, "Rampura", "Seeds", "Grouped", null);
+        // Trip 1: CREATED Available Trip in Rampura (Trip #245)
+        const trip1Orders = await createDemoOrders(6, "Rampura", "Seeds", "GROUPED", null);
         const trip1 = await TripBlock.create({
             orders: trip1Orders,
             serviceType: "Seeds",
             assignedShop: null,
             scheduledDate: new Date(Date.now() + 86400000),
-            status: "OPEN",
+            status: "CREATED",
             estimatedEarnings: 850,
             centerLocation: {
                 type: "Point",
@@ -132,14 +132,14 @@ const seedShopkeeperDemo = async () => {
             isDemo: true,
         });
 
-        // Trip 2: OPEN Available Trip in Bilkisganj (Trip #248)
-        const trip2Orders = await createDemoOrders(4, "Bilkisganj", "Fertilizer", "Grouped", null);
+        // Trip 2: CREATED Available Trip in Bilkisganj (Trip #248)
+        const trip2Orders = await createDemoOrders(4, "Bilkisganj", "Fertilizer", "GROUPED", null);
         const trip2 = await TripBlock.create({
             orders: trip2Orders,
             serviceType: "Fertilizer",
             assignedShop: null,
             scheduledDate: new Date(Date.now() + 90000000),
-            status: "OPEN",
+            status: "CREATED",
             estimatedEarnings: 620,
             centerLocation: {
                 type: "Point",
@@ -148,14 +148,14 @@ const seedShopkeeperDemo = async () => {
             isDemo: true,
         });
 
-        // Trip 3: OPEN Available Trip in Berasia Corridor (Trip #252)
-        const trip3Orders = await createDemoOrders(8, "Berasia Corridor", "Pesticides", "Grouped", null);
+        // Trip 3: CREATED Available Trip in Berasia Corridor (Trip #252)
+        const trip3Orders = await createDemoOrders(8, "Berasia Corridor", "Pesticides", "GROUPED", null);
         const trip3 = await TripBlock.create({
             orders: trip3Orders,
             serviceType: "Pesticides",
             assignedShop: null,
             scheduledDate: new Date(Date.now() + 100000000),
-            status: "OPEN",
+            status: "CREATED",
             estimatedEarnings: 1200,
             centerLocation: {
                 type: "Point",
@@ -165,7 +165,7 @@ const seedShopkeeperDemo = async () => {
         });
 
         // Trip 4: CLAIMED / Active Trip assigned to Demo Shop (Trip #239)
-        const trip4Orders = await createDemoOrders(5, "Kolar Hub", "Seeds", "Accepted", shop._id);
+        const trip4Orders = await createDemoOrders(5, "Kolar Hub", "Seeds", "CLAIMED", shop._id);
         const trip4 = await TripBlock.create({
             orders: trip4Orders,
             serviceType: "Seeds",
@@ -182,7 +182,7 @@ const seedShopkeeperDemo = async () => {
         });
 
         // Trip 5: COMPLETED Trip assigned to Demo Shop (Trip #220)
-        const trip5Orders = await createDemoOrders(5, "Sehore East", "Fertilizer", "Completed", shop._id);
+        const trip5Orders = await createDemoOrders(5, "Sehore East", "Fertilizer", "COMPLETED", shop._id);
         const trip5 = await TripBlock.create({
             orders: trip5Orders,
             serviceType: "Fertilizer",
@@ -200,7 +200,7 @@ const seedShopkeeperDemo = async () => {
         });
 
         // Trip 6: COMPLETED Trip assigned to Demo Shop (Trip #214)
-        const trip6Orders = await createDemoOrders(4, "Phanda Hub", "Seeds", "Completed", shop._id);
+        const trip6Orders = await createDemoOrders(4, "Phanda Hub", "Seeds", "COMPLETED", shop._id);
         const trip6 = await TripBlock.create({
             orders: trip6Orders,
             serviceType: "Seeds",

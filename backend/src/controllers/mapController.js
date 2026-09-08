@@ -192,9 +192,9 @@ exports.getMapData = async (req, res) => {
         const stats = {
             totalShops: shops.length,
             totalOrders: orders.length,
-            pendingOrders: orders.filter(o => o.status === "Pending").length,
-            groupedOrders: orders.filter(o => o.status === "Grouped").length,
-            openTripBlocks: tripBlocks.filter(t => t.status === "OPEN" || t.status === "Pending").length,
+            pendingOrders: orders.filter(o => o.status === "RECEIVED" || o.status === "Pending").length,
+            groupedOrders: orders.filter(o => o.status === "GROUPED" || o.status === "Grouped").length,
+            openTripBlocks: tripBlocks.filter(t => t.status === "CREATED" || t.status === "OPEN" || t.status === "Pending").length,
             claimedTripBlocks: tripBlocks.filter(t => t.status === "CLAIMED").length,
             completedTripBlocks: tripBlocks.filter(t => t.status === "COMPLETED").length,
         };
