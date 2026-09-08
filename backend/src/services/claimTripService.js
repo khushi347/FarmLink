@@ -14,6 +14,10 @@ const claimTripService = async (tripId, shopId) => {
         throw new Error("Shop not found");
     }
 
+    if (shop.isActive === false) {
+        throw new Error("Shop is currently inactive and cannot claim trips");
+    }
+
     // Inspect trip to validate lifecycle eligibility
     const existingTrip = await TripBlock.findById(tripId);
     if (!existingTrip) {

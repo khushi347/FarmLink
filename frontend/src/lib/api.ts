@@ -252,4 +252,158 @@ export const shopApi = {
     request<{ success: boolean; message: string }>("/shop/demo/reset", { method: "POST" }, token),
 };
 
+export interface AdminDashboardMetrics {
+  totalCustomers: number;
+  activeShops: number;
+  ordersToday: number;
+  activeTrips: number;
+  completedDeliveries: number;
+}
+
+export interface AdminCustomer {
+  _id: string;
+  name: string;
+  phone: string;
+  village?: string;
+  location?: { coordinates: [number, number] };
+  createdAt: string;
+  totalOrders: number;
+  lastOrderDate?: string;
+}
+
+export interface AdminShopkeeper {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  createdAt: string;
+  shop?: {
+    _id: string;
+    shopName: string;
+    village?: string;
+    isActive?: boolean;
+  };
+}
+
+export interface AdminShop {
+  _id: string;
+  shopName: string;
+  phone: string;
+  village?: string;
+  category: string[];
+  serviceType: string;
+  isActive: boolean;
+  owner?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone?: string;
+  };
+  location?: { coordinates: [number, number] };
+  createdAt: string;
+}
+
+export interface AdminProductsData {
+  supportedCategories: string[];
+  productStats: Array<{
+    _id: string;
+    orderCount: number;
+    totalQuantity: number;
+  }>;
+}
+
+export interface AdminOrderDetails {
+  _id: string;
+  serviceType: string;
+  status: string;
+  products: Array<{
+    name: string;
+    category?: string;
+    quantity: number;
+    unitPrice?: number;
+    totalPrice?: number;
+  }>;
+  totalAmount: number;
+  farmer: {
+    _id: string;
+    name: string;
+    phone?: string;
+    village?: string;
+    location?: any;
+  };
+  assignedShop?: {
+    _id: string;
+    shopName: string;
+    phone?: string;
+    village?: string;
+  };
+  tripBlock?: {
+    _id: string;
+    status: string;
+    assignedShop?: string;
+    claimedAt?: string;
+    completedAt?: string;
+  };
+  destination?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminTripDetails {
+  _id: string;
+  serviceType: string;
+  status: string;
+  orders: any[];
+  assignedShop?: {
+    _id: string;
+    shopName: string;
+    phone?: string;
+    village?: string;
+    location?: any;
+  };
+  claimedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  routeDetails?: {
+    waypoints: any[];
+    totalDistanceKm: number;
+    estimatedDurationMinutes: number;
+  };
+}
+
+export const adminApi = {
+  getDashboard: (token?: string) =>
+    request<{ success: boolean; data: AdminDashboardMetrics }>("/admin/dashboard", {}, token),
+
+  getCustomers: (params?: { page?: number; limit?: number; search?: string }, token?: string) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", params.page.toString());
+    if (params?.limit) query.set("limit", params.limit.toString());
+    if (params?.search) query.set("search", params.search);
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return request<{ success: boolean; total: number; page: number; totalPages: number; data: AdminCustomer[] }>(`/admin/customers${qs}`, {}, token);
+  },
+
+  getShopkeepers: (token?: string) =>
+    request<{ success: boolean; total: number; data: AdminShopkeeper[] }>("/admin/shopkeepers", {}, token),
+
+  getShops: (token?: string) =>
+    request<{ success: boolean; total: number; data: AdminShop[] }>("/admin/shops", {}, token),
+
+  toggleShopStatus: (shopId: string, token?: string) =>
+    request<{ success: boolean; message: string; shop: { id: string; shopName: string; isActive: boolean } }>(`/admin/shops/${shopId}/status`, { method: "PATCH" }, token),
+
+  getProducts: (token?: string) =>
+    request<{ success: boolean; data: AdminProductsData }>("/admin/products", {}, token),
+
+  getOrderDetails: (orderId: string, token?: string) =>
+    request<{ success: boolean; data: AdminOrderDetails }>(`/admin/orders/${orderId}`, {}, token),
+
+  getTripDetails: (tripId: string, token?: string) =>
+    request<{ success: boolean; data: AdminTripDetails }>(`/admin/trips/${tripId}`, {}, token),
+};
+
+
 

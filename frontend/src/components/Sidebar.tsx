@@ -13,6 +13,8 @@ import {
   SettingsIcon,
   XIcon,
   MapPinIcon,
+  UsersIcon,
+  PackageIcon,
 } from "./Icons";
 
 const cormorant = Cormorant_Garamond({
@@ -50,16 +52,19 @@ const NAV_GROUPS: NavGroup[] = [
     groupLabel: "Operations",
     items: [
       { id: "overview",   label: "Overview",   Icon: DashboardIcon,  badge: null },
-      { id: "orders",     label: "Orders",     Icon: ShoppingBagIcon,badge: "7" },
-      { id: "tripblocks", label: "TripBlocks", Icon: TripBlockIcon,  badge: "4" },
+      { id: "orders",     label: "Orders",     Icon: ShoppingBagIcon,badge: null },
+      { id: "tripblocks", label: "TripBlocks", Icon: TripBlockIcon,  badge: null },
+      { id: "delivery",   label: "Deliveries", Icon: TruckIcon,      badge: null },
+      { id: "map",        label: "Live Map",   Icon: MapPinIcon,     badge: "Live", isLive: true },
     ],
   },
   {
-    groupLabel: "Network & Logistics",
+    groupLabel: "Directory & Network",
     items: [
-      { id: "shops",    label: "Shops",    Icon: StoreIcon,  badge: "3" },
-      { id: "delivery", label: "Delivery", Icon: TruckIcon,  badge: "3" },
-      { id: "map",      label: "Live Map", Icon: MapPinIcon, badge: "Live", isLive: true },
+      { id: "customers",   label: "Customers",   Icon: UsersIcon,      badge: null },
+      { id: "shopkeepers", label: "Shopkeepers", Icon: UsersIcon,      badge: null },
+      { id: "shops",       label: "Shops",       Icon: StoreIcon,      badge: null },
+      { id: "products",    label: "Products",    Icon: PackageIcon,    badge: null },
     ],
   },
   {

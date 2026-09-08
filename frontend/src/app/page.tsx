@@ -3,7 +3,18 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { mapApi, tripApi } from "@/lib/api";
+import {
+  mapApi,
+  tripApi,
+  adminApi,
+  AdminDashboardMetrics,
+  AdminCustomer,
+  AdminShopkeeper,
+  AdminShop,
+  AdminProductsData,
+  AdminOrderDetails,
+  AdminTripDetails,
+} from "@/lib/api";
 import { MapDataResponse, MapOrder, MapTripBlock } from "@/types/map";
 import { useRealtime } from "@/hooks/useRealtime";
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
@@ -21,6 +32,9 @@ import {
   ClockIcon,
   CheckIcon,
   MapPinIcon,
+  UsersIcon,
+  EyeIcon,
+  XIcon,
 } from "@/components/Icons";
 import MapView from "@/components/map/MapView";
 import SettingsSection from "@/components/SettingsSection";
@@ -203,15 +217,38 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    if (!isLoading && user?.role === "shopkeeper") {
-      router.push("/shopkeeper");
+    if (!isLoading) {
+      if (!user) {
+        router.push("/login");
+      } else if (user.role === "shopkeeper") {
+        router.push("/shopkeeper");
+      }
     }
   }, [isLoading, user, router]);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [actFilter, setActFilter] = useState("ALL");
   const [dashboardData, setDashboardData] = useState<MapDataResponse["data"] | null>(null);
+  const [adminMetrics, setAdminMetrics] = useState<AdminDashboardMetrics | null>(null);
+  const [adminCustomers, setAdminCustomers] = useState<AdminCustomer[]>([]);
+  const [adminShopkeepers, setAdminShopkeepers] = useState<AdminShopkeeper[]>([]);
+  const [adminShops, setAdminShops] = useState<AdminShop[]>([]);
+  const [adminProducts, setAdminProducts] = useState<AdminProductsData | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customerTotalPages, setCustomerTotalPages] = useState(1);
+  const [togglingShopId, setTogglingShopId] = useState<string | null>(null);
+
+  // Modal inspection states
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [orderDetails, setOrderDetails] = useState<AdminOrderDetails | null>(null);
+  const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
+
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [tripDetails, setTripDetails] = useState<AdminTripDetails | null>(null);
+  const [loadingTripDetails, setLoadingTripDetails] = useState(false);
+
   const [dataError, setDataError] = useState<string | null>(null);
-  const [claimingTripId, setClaimingTripId] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -234,17 +271,97 @@ export default function Home() {
     if (!token) return;
     try {
       setDataError(null);
-      const response = await mapApi.getMapData(undefined, token);
-      if (!response.success) throw new Error(response.message || "Unable to load dashboard data");
-      setDashboardData(response.data);
+      const [mapRes, adminRes] = await Promise.all([
+        mapApi.getMapData(undefined, token),
+        adminApi.getDashboard(token),
+      ]);
+      if (!mapRes.success) throw new Error(mapRes.message || "Unable to load map data");
+      setDashboardData(mapRes.data);
+      if (adminRes.success) {
+        setAdminMetrics(adminRes.data);
+      }
     } catch (error) {
       setDataError(error instanceof Error ? error.message : "Unable to load dashboard data");
     }
   }, [token]);
 
+  const loadTabData = useCallback(async () => {
+    if (!token) return;
+    try {
+      if (activeTab === "customers") {
+        const res = await adminApi.getCustomers({ page: customerPage, limit: 15, search: customerSearch || undefined }, token);
+        if (res.success) {
+          setAdminCustomers(res.data);
+          setCustomerTotalPages(res.totalPages || 1);
+        }
+      } else if (activeTab === "shopkeepers") {
+        const res = await adminApi.getShopkeepers(token);
+        if (res.success) setAdminShopkeepers(res.data);
+      } else if (activeTab === "shops") {
+        const res = await adminApi.getShops(token);
+        if (res.success) setAdminShops(res.data);
+      } else if (activeTab === "products") {
+        const res = await adminApi.getProducts(token);
+        if (res.success) setAdminProducts(res.data);
+      }
+    } catch (err: any) {
+      console.error("Failed to load tab data:", err);
+    }
+  }, [token, activeTab, customerPage, customerSearch]);
+
+  const handleToggleShopStatus = async (shopId: string) => {
+    if (!token || togglingShopId) return;
+    try {
+      setTogglingShopId(shopId);
+      const res = await adminApi.toggleShopStatus(shopId, token);
+      if (res.success) {
+        setAdminShops((prev) =>
+          prev.map((s) => (s._id === shopId ? { ...s, isActive: res.shop.isActive } : s))
+        );
+        await loadDashboardData();
+      }
+    } catch (err: any) {
+      setDataError(err?.message || "Failed to update shop status");
+    } finally {
+      setTogglingShopId(null);
+    }
+  };
+
+  const openOrderDetails = async (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setLoadingOrderDetails(true);
+    setOrderDetails(null);
+    try {
+      const res = await adminApi.getOrderDetails(orderId, token || undefined);
+      if (res.success) setOrderDetails(res.data);
+    } catch (err: any) {
+      setDataError(err?.message || "Failed to load order details");
+    } finally {
+      setLoadingOrderDetails(false);
+    }
+  };
+
+  const openTripDetails = async (tripId: string) => {
+    setSelectedTripId(tripId);
+    setLoadingTripDetails(true);
+    setTripDetails(null);
+    try {
+      const res = await adminApi.getTripDetails(tripId, token || undefined);
+      if (res.success) setTripDetails(res.data);
+    } catch (err: any) {
+      setDataError(err?.message || "Failed to load trip details");
+    } finally {
+      setLoadingTripDetails(false);
+    }
+  };
+
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  useEffect(() => {
+    loadTabData();
+  }, [loadTabData]);
 
   useEffect(() => {
     const scheduleRefresh = () => {
@@ -327,12 +444,12 @@ export default function Home() {
     };
   });
   const deliveryRows = sourceTrips
-    .filter((trip) => trip.status === "CLAIMED" || trip.status === "IN DELIVERY")
+    .filter((trip) => trip.status === "CLAIMED")
     .map((trip) => ({
       code: trip.code,
       route: `${trip.orderCount} origin points -> ${trip.assignedShop?.name || "Unassigned"}`,
       items: `${trip.totalQuantity} total · ${trip.serviceType}`,
-      progress: trip.status === "IN DELIVERY" ? 80 : 40,
+      progress: 65,
       eta: trip.scheduledDate ? new Date(trip.scheduledDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--",
       steps: ["Grouped", "Shop Claimed", "In Transit", "Delivered"],
       status: tripWorkflowStatus(trip.status),
@@ -368,11 +485,11 @@ export default function Home() {
 
   const stats = dashboardData?.stats;
   const metrics = [
-    { label:"Orders", val:String(stats?.totalOrders || 0), sub:"Current orders", accent:"#c26d40", live:true },
-    { label:"Ready for Grouping", val:String(stats?.pendingOrders || 0), sub:"Pending orders", accent:"#c26d40", live:false },
-    { label:"TripBlocks Available", val:String(stats?.openTripBlocks || 0), sub:"Open for claims", accent:"#b84a0a", live:true },
-    { label:"Shop Claims", val:String(stats?.claimedTripBlocks || 0), sub:"Currently claimed", accent:"#1f6e48", live:false },
-    { label:"Completed", val:String(stats?.completedTripBlocks || 0), sub:"Completed TripBlocks", accent:"#234e72", live:true },
+    { label: "Total Customers", val: String(adminMetrics?.totalCustomers ?? 0), sub: "Registered farmers", accent: "#c26d40", live: false },
+    { label: "Active Shops", val: String(adminMetrics?.activeShops ?? 0), sub: "Operational retailers", accent: "#1f6e48", live: true },
+    { label: "Orders Today", val: String(adminMetrics?.ordersToday ?? 0), sub: "Placed today", accent: "#b84a0a", live: true },
+    { label: "Active Trips", val: String(adminMetrics?.activeTrips ?? 0), sub: "In progress (CLAIMED)", accent: "#234e72", live: true },
+    { label: "Completed Deliveries", val: String(adminMetrics?.completedDeliveries ?? 0), sub: "Fulfilled trips", accent: "#3a7030", live: false },
   ];
 
   /* ── SHARED SURFACE STYLES ── */
@@ -843,8 +960,13 @@ export default function Home() {
                           </td>
                           <td className="px-5 py-3.5"><StatusBadge status={ord.status} /></td>
                           <td className="px-5 py-3.5 text-right">
-                            <button type="button" className="btn-ghost text-[11px] font-semibold px-3 py-1.5 rounded-lg" style={{ color: "#5a5f6b" }}>
-                              Manage
+                            <button
+                              type="button"
+                              onClick={() => openOrderDetails(ord.id)}
+                              className="btn-ghost text-[11px] font-semibold px-3 py-1.5 rounded-lg"
+                              style={{ color: "#c26d40" }}
+                            >
+                              Inspect
                             </button>
                           </td>
                         </tr>
@@ -922,17 +1044,17 @@ export default function Home() {
                             ))}
                           </div>
 
-                          {/* Claim zone */}
-                          {claimed ? (
-                            <div
-                              className="px-3 py-2.5 rounded-lg text-xs font-semibold"
-                              style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
-                            >
-                              ✓ Claimed by: {claimed}
-                            </div>
-                          ) : (
-                            <div className="space-y-2.5">
-                              {tb.deadlineMinutes && (
+                          {/* Trip details / Inspection */}
+                          <div className="space-y-2">
+                            {claimed ? (
+                              <div
+                                className="px-3 py-2 rounded-lg text-xs font-semibold"
+                                style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
+                              >
+                                ✓ Claimed by: {claimed}
+                              </div>
+                            ) : (
+                              tb.deadlineMinutes ? (
                                 <div className="space-y-1.5">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "#a0510a" }}>
@@ -946,27 +1068,18 @@ export default function Home() {
                                     />
                                   </div>
                                 </div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  setClaimingTripId(tb.id);
-                                  try {
-                                    await tripApi.claim(tb.id, token || undefined);
-                                    await loadDashboardData();
-                                  } catch (error) {
-                                    setDataError(error instanceof Error ? error.message : "Unable to claim TripBlock");
-                                  } finally {
-                                    setClaimingTripId(null);
-                                  }
-                                }}
-                                disabled={claimingTripId === tb.id}
-                                className="btn-terra w-full py-2.5 rounded-lg text-xs font-bold"
-                              >
-                                Claim TripBlock for Shop
-                              </button>
-                            </div>
-                          )}
+                              ) : null
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => openTripDetails(tb.id)}
+                              className="w-full py-2 rounded-lg text-xs font-bold border transition-colors flex items-center justify-center gap-1.5"
+                              style={{ background: "#ffffff", color: "#1c1e24", borderColor: "#d6d1c7" }}
+                            >
+                              <EyeIcon size={14} />
+                              <span>Inspect Trip Details</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -979,14 +1092,14 @@ export default function Home() {
             {activeTab === "shops" && (
               <div className="page-enter space-y-5">
                 <SectionHeading
-                  title="Shop Directory"
+                  title="Shop Directory & Management"
                   subtitle="Retail stores enrolled in FarmLink to claim and fulfill regional TripBlocks."
                 />
                 <div className="warm-card overflow-hidden">
                   <table className="w-full text-left">
                     <thead>
                       <tr style={{ borderBottom: "1px solid #e5e1da", background: "#faf8f5" }}>
-                        {["Shop Name", "Corridor", "Active Claims", "Status"].map((h) => (
+                        {["Shop Name", "Corridor / Village", "Owner Contact", "Categories", "Status", "Controls"].map((h) => (
                           <th key={h} className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: "#b0b3bc" }}>
                             {h}
                           </th>
@@ -994,43 +1107,377 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      {shopRows.map((shop, idx) => (
-                        <tr
-                          key={shop.name}
-                          className="data-row card-enter"
-                          style={{ borderBottom: "1px solid #f0ece6", animationDelay: `${idx * 60}ms` }}
-                        >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0"
-                                style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
-                              >
-                                {shop.name.charAt(0)}
+                      {(adminShops.length > 0 ? adminShops : (dashboardData?.shops || []).map((s: any) => ({
+                        _id: s.id,
+                        shopName: s.name,
+                        village: s.village,
+                        phone: "",
+                        category: s.category || [],
+                        isActive: s.isActive !== false,
+                        owner: undefined,
+                      }))).map((shop, idx) => {
+                        const isActive = shop.isActive !== false;
+                        return (
+                          <tr
+                            key={shop._id}
+                            className="data-row card-enter"
+                            style={{ borderBottom: "1px solid #f0ece6", animationDelay: `${idx * 60}ms` }}
+                          >
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0"
+                                  style={{
+                                    background: isActive ? "#eef7f2" : "#fef0f0",
+                                    color: isActive ? "#1f6e48" : "#902020",
+                                    border: `1px solid ${isActive ? "#a8d8bc" : "#f0b0b0"}`,
+                                  }}
+                                >
+                                  {shop.shopName.charAt(0)}
+                                </div>
+                                <div>
+                                  <span className="text-sm font-semibold block leading-tight" style={{ color: "#1c1e24" }}>
+                                    {shop.shopName}
+                                  </span>
+                                  {shop.phone && (
+                                    <span className="text-[11px] text-[#8c8e96]">{shop.phone}</span>
+                                  )}
+                                </div>
                               </div>
-                              <span className="text-sm font-semibold" style={{ color: "#1c1e24" }}>{shop.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className="text-xs font-light" style={{ color: "#5a5f6b" }}>{shop.location}</span>
-                          </td>
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold" style={{ color: "#1c1e24" }}>{shop.count} TripBlocks</span>
-                              <span className="font-mono text-[10px]" style={{ color: "#8c8e96" }}>({shop.claims})</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4">
-                            <span
-                              className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded"
-                              style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#3faa6e" }} />
-                              Active Partner
-                            </span>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="text-xs font-light" style={{ color: "#5a5f6b" }}>{shop.village || "—"}</span>
+                            </td>
+                            <td className="px-5 py-4">
+                              {shop.owner ? (
+                                <div>
+                                  <p className="text-xs font-medium text-[#1c1e24]">{shop.owner.name}</p>
+                                  <p className="text-[10px] text-[#8c8e96]">{shop.owner.email}</p>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-[#8c8e96]">—</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex flex-wrap gap-1">
+                                {(shop.category || []).map((c: string) => (
+                                  <CategoryTag key={c} cat={c} />
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              {isActive ? (
+                                <span
+                                  className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded"
+                                  style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#3faa6e" }} />
+                                  Active Partner
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded"
+                                  style={{ background: "#fff5f5", color: "#902020", border: "1px solid #f0b0b0" }}
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#d94040" }} />
+                                  Inactive
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-4">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleShopStatus(shop._id)}
+                                disabled={togglingShopId === shop._id}
+                                className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                  isActive
+                                    ? "text-[#a03020] bg-white hover:bg-[#fff5f5] border-[#f0c0c0]"
+                                    : "text-[#1f6e48] bg-[#eef7f2] hover:bg-[#d8f0e2] border-[#a8d8bc]"
+                                }`}
+                              >
+                                {togglingShopId === shop._id
+                                  ? "Updating…"
+                                  : isActive
+                                  ? "Deactivate"
+                                  : "Activate"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── CUSTOMERS ── */}
+            {activeTab === "customers" && (
+              <div className="page-enter space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <SectionHeading
+                    title="Customer Directory"
+                    subtitle="Registered farmers sourcing supplies and tractor services through FarmLink."
+                  />
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder="Search farmer or village…"
+                      value={customerSearch}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value);
+                        setCustomerPage(1);
+                      }}
+                      className="text-xs px-3 py-2 rounded-lg border border-[#d6d1c7] bg-white text-[#1c1e24] focus:outline-none focus:border-[#c26d40] w-64 shadow-3xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="warm-card overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #e5e1da", background: "#faf8f5" }}>
+                        {["Farmer Name", "Phone", "Village", "Orders Placed", "Registered", "Status"].map((h, i) => (
+                          <th key={i} className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: "#b0b3bc" }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminCustomers.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-5 py-8 text-center text-xs text-[#8c8e96]">
+                            No registered customers found.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        adminCustomers.map((cust, idx) => (
+                          <tr
+                            key={cust._id}
+                            className="data-row card-enter"
+                            style={{ borderBottom: "1px solid #f0ece6", animationDelay: `${idx * 40}ms` }}
+                          >
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <div
+                                  className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                                  style={{ background: "#faf2ed", color: "#c26d40", border: "1px solid #f0d8ca" }}
+                                >
+                                  {cust.name.charAt(0)}
+                                </div>
+                                <span className="text-xs font-bold text-[#1c1e24]">{cust.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs text-[#5a5f6b]">{cust.phone || "—"}</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs text-[#5a5f6b]">{cust.village || "—"}</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold"
+                                style={{ background: "#fdf5e8", color: "#8a5a00", border: "1px solid #f5cc7a" }}
+                              >
+                                {cust.totalOrders} {cust.totalOrders === 1 ? "order" : "orders"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-[11px] text-[#8c8e96]">
+                                {new Date(cust.createdAt).toLocaleDateString()}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded bg-[#eef7f2] text-[#1f6e48] border border-[#a8d8bc]">
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#3faa6e" }} />
+                                Active Farmer
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+
+                  {/* Pagination */}
+                  <div className="px-5 py-3 flex items-center justify-between border-t border-[#e5e1da] bg-[#faf8f5]">
+                    <span className="text-[11px] text-[#8c8e96]">
+                      Page {customerPage} of {customerTotalPages}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={customerPage <= 1}
+                        onClick={() => setCustomerPage((p) => Math.max(1, p - 1))}
+                        className="px-2.5 py-1 text-xs font-medium rounded border border-[#d6d1c7] bg-white disabled:opacity-40 hover:bg-[#faf8f5]"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={customerPage >= customerTotalPages}
+                        onClick={() => setCustomerPage((p) => p + 1)}
+                        className="px-2.5 py-1 text-xs font-medium rounded border border-[#d6d1c7] bg-white disabled:opacity-40 hover:bg-[#faf8f5]"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── SHOPKEEPERS ── */}
+            {activeTab === "shopkeepers" && (
+              <div className="page-enter space-y-5">
+                <SectionHeading
+                  title="Shopkeeper Accounts"
+                  subtitle="Authorized retail partner accounts responsible for accepting and fulfilling regional TripBlocks."
+                />
+
+                <div className="warm-card overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #e5e1da", background: "#faf8f5" }}>
+                        {["Name", "Email", "Phone", "Assigned Shop", "Role", "Joined"].map((h, i) => (
+                          <th key={i} className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: "#b0b3bc" }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminShopkeepers.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-5 py-8 text-center text-xs text-[#8c8e96]">
+                            No registered shopkeepers found.
+                          </td>
+                        </tr>
+                      ) : (
+                        adminShopkeepers.map((sk, idx) => (
+                          <tr
+                            key={sk._id}
+                            className="data-row card-enter"
+                            style={{ borderBottom: "1px solid #f0ece6", animationDelay: `${idx * 40}ms` }}
+                          >
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs font-bold text-[#1c1e24]">{sk.name}</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs text-[#5a5f6b]">{sk.email}</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs text-[#5a5f6b]">{sk.phone || "—"}</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              {sk.shop ? (
+                                <div>
+                                  <p className="text-xs font-semibold text-[#1c1e24]">{sk.shop.shopName}</p>
+                                  <p className="text-[10px] text-[#8c8e96]">{sk.shop.village}</p>
+                                </div>
+                              ) : (
+                                <span className="text-xs italic text-[#8c8e96]">Unassigned</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                                style={{ background: "#eef7f2", color: "#1f6e48", border: "1px solid #a8d8bc" }}
+                              >
+                                {sk.role}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-[11px] text-[#8c8e96]">
+                                {new Date(sk.createdAt).toLocaleDateString()}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── PRODUCTS ── */}
+            {activeTab === "products" && (
+              <div className="page-enter space-y-6">
+                <SectionHeading
+                  title="Products & Catalogs"
+                  subtitle="Service categories and aggregated agricultural order demand across regional hubs."
+                />
+
+                {/* Categories */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-[#8c8e96] mb-3">
+                    Supported Fulfillment Categories
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    {(adminProducts?.supportedCategories || [
+                      "Seeds & Fertilizer", "Groceries", "Agricultural Supplies", "Tractor Service", "Pesticides", "Produce"
+                    ]).map((cat) => (
+                      <div
+                        key={cat}
+                        className="p-3.5 rounded-xl border border-[#e5e1da] bg-white flex flex-col items-center text-center gap-1.5 shadow-3xs"
+                      >
+                        <CategoryTag cat={cat} />
+                        <span className="text-[10px] text-[#8c8e96] mt-1">Active Category</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Demand Table */}
+                <div className="warm-card overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-[#e5e1da] flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-[#1c1e24]">Aggregated Product Demand</h3>
+                    <span className="text-[10px] text-[#8c8e96]">Based on historical farmer orders</span>
+                  </div>
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #e5e1da", background: "#faf8f5" }}>
+                        {["Product Item", "Times Ordered", "Total Units Ordered", "Fulfillment Status"].map((h, i) => (
+                          <th key={i} className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: "#b0b3bc" }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(!adminProducts?.productStats || adminProducts.productStats.length === 0) ? (
+                        <tr>
+                          <td colSpan={4} className="px-5 py-8 text-center text-xs text-[#8c8e96]">
+                            No product order statistics available yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        adminProducts.productStats.map((prod, idx) => (
+                          <tr
+                            key={prod._id || idx}
+                            className="data-row card-enter"
+                            style={{ borderBottom: "1px solid #f0ece6", animationDelay: `${idx * 30}ms` }}
+                          >
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs font-bold text-[#1c1e24]">{prod._id || "General Supply"}</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs font-semibold text-[#5a5f6b]">{prod.orderCount} orders</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="text-xs font-bold text-[#1c1e24]">{prod.totalQuantity} units</span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded bg-[#eef7f2] text-[#1f6e48] border border-[#a8d8bc]">
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#3faa6e" }} />
+                                In Demand
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1124,6 +1571,243 @@ export default function Home() {
 
             {/* ── SETTINGS VIEW ── */}
             {activeTab === "settings" && <SettingsSection />}
+
+            {/* ── ORDER DETAILS MODAL ── */}
+            {selectedOrderId && (
+              <div className="fixed inset-0 z-50 bg-[#1c1e24]/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="warm-card max-w-xl w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderId(null)}
+                    aria-label="Close modal"
+                    className="absolute top-4 right-4 p-1 rounded-md text-[#8c8e96] hover:text-[#1c1e24] hover:bg-[#faf8f5]"
+                  >
+                    <XIcon size={18} />
+                  </button>
+
+                  <div className="border-b border-[#e5e1da] pb-3">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#8c8e96]">Order Inspection</span>
+                    <h3 className={`${cormorant.className} text-2xl font-bold text-[#1c1e24] mt-0.5`}>
+                      Order #{orderDetails?.products?.[0]?.name ? `${selectedOrderId.slice(-6).toUpperCase()}` : selectedOrderId.slice(-6).toUpperCase()}
+                    </h3>
+                  </div>
+
+                  {loadingOrderDetails ? (
+                    <div className="py-12 flex flex-col items-center gap-3">
+                      <div className="h-7 w-7 rounded-full border-2 animate-spin" style={{ borderColor: "#c26d40", borderTopColor: "transparent" }} />
+                      <p className="text-xs text-[#8c8e96]">Loading order details…</p>
+                    </div>
+                  ) : orderDetails ? (
+                    <div className="space-y-4 text-xs">
+                      {/* Status & Service */}
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#faf2ed] text-[#c26d40] border border-[#f0d8ca]">
+                          {orderDetails.serviceType}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-[#eef7f2] text-[#1f6e48] border border-[#a8d8bc]">
+                          {orderDetails.status}
+                        </span>
+                      </div>
+
+                      {/* Farmer & Shop Details Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#faf8f5] border border-[#e5e1da]">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase text-[#8c8e96]">Customer / Farmer</p>
+                          <p className="font-bold text-[#1c1e24] mt-0.5">{orderDetails.farmer?.name || "Farmer"}</p>
+                          <p className="text-[#5a5f6b] mt-0.5">{orderDetails.farmer?.phone || "No phone recorded"}</p>
+                          <p className="text-[#8c8e96]">{orderDetails.farmer?.village || "Village unspecified"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase text-[#8c8e96]">Assigned Retail Shop</p>
+                          {orderDetails.assignedShop ? (
+                            <>
+                              <p className="font-bold text-[#1c1e24] mt-0.5">{orderDetails.assignedShop.shopName}</p>
+                              <p className="text-[#5a5f6b] mt-0.5">{orderDetails.assignedShop.phone || "No phone recorded"}</p>
+                              <p className="text-[#8c8e96]">{orderDetails.assignedShop.village || ""}</p>
+                            </>
+                          ) : (
+                            <p className="text-[#8c8e96] italic mt-0.5">Not claimed by a shop yet</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Products list */}
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#8c8e96] mb-2">Requested Items</p>
+                        <div className="border border-[#e5e1da] rounded-xl overflow-hidden">
+                          <table className="w-full text-left">
+                            <thead className="bg-[#faf8f5] border-b border-[#e5e1da]">
+                              <tr>
+                                <th className="px-3 py-2 text-[10px] font-bold text-[#8c8e96]">Item</th>
+                                <th className="px-3 py-2 text-[10px] font-bold text-[#8c8e96]">Category</th>
+                                <th className="px-3 py-2 text-[10px] font-bold text-[#8c8e96] text-right">Quantity</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#f0ece6]">
+                              {orderDetails.products?.map((p, i) => (
+                                <tr key={i}>
+                                  <td className="px-3 py-2 font-medium text-[#1c1e24]">{p.name}</td>
+                                  <td className="px-3 py-2 text-[#5a5f6b]">{p.category || orderDetails.serviceType}</td>
+                                  <td className="px-3 py-2 text-right font-bold text-[#1c1e24]">{p.quantity}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Timeline */}
+                      <div className="border-t border-[#e5e1da] pt-3 flex flex-wrap justify-between text-[11px] text-[#8c8e96]">
+                        <span>Created: {new Date(orderDetails.createdAt).toLocaleString()}</span>
+                        <span>Updated: {new Date(orderDetails.updatedAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#902020]">Order details unavailable.</p>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrderId(null)}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#faf8f5] border border-[#d6d1c7] text-[#1c1e24] hover:bg-[#eee9df]"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── TRIP DETAILS MODAL ── */}
+            {selectedTripId && (
+              <div className="fixed inset-0 z-50 bg-[#1c1e24]/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="warm-card max-w-2xl w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTripId(null)}
+                    aria-label="Close modal"
+                    className="absolute top-4 right-4 p-1 rounded-md text-[#8c8e96] hover:text-[#1c1e24] hover:bg-[#faf8f5]"
+                  >
+                    <XIcon size={18} />
+                  </button>
+
+                  <div className="border-b border-[#e5e1da] pb-3">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#8c8e96]">TripBlock Inspection</span>
+                    <h3 className={`${cormorant.className} text-2xl font-bold text-[#1c1e24] mt-0.5`}>
+                      TripBlock #{tripDetails ? `${selectedTripId.slice(-6).toUpperCase()}` : selectedTripId.slice(-6).toUpperCase()}
+                    </h3>
+                  </div>
+
+                  {loadingTripDetails ? (
+                    <div className="py-12 flex flex-col items-center gap-3">
+                      <div className="h-7 w-7 rounded-full border-2 animate-spin" style={{ borderColor: "#c26d40", borderTopColor: "transparent" }} />
+                      <p className="text-xs text-[#8c8e96]">Loading TripBlock data…</p>
+                    </div>
+                  ) : tripDetails ? (
+                    <div className="space-y-4 text-xs">
+                      {/* Status & Service */}
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#faf2ed] text-[#c26d40] border border-[#f0d8ca]">
+                          {tripDetails.serviceType}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-[#eef7f2] text-[#1f6e48] border border-[#a8d8bc]">
+                          {tripDetails.status}
+                        </span>
+                      </div>
+
+                      {/* Route metrics strip */}
+                      {tripDetails.routeDetails && (
+                        <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-[#faf8f5] border border-[#e5e1da] text-center">
+                          <div>
+                            <p className="text-[10px] text-[#8c8e96] uppercase font-bold">Stops</p>
+                            <p className="text-base font-extrabold text-[#1c1e24] mt-0.5">
+                              {tripDetails.routeDetails.waypoints?.length || tripDetails.orders?.length || 0}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-[#8c8e96] uppercase font-bold">Total Distance</p>
+                            <p className="text-base font-extrabold text-[#c26d40] mt-0.5">
+                              {tripDetails.routeDetails.totalDistanceKm ? `${tripDetails.routeDetails.totalDistanceKm} km` : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-[#8c8e96] uppercase font-bold">Est. Duration</p>
+                            <p className="text-base font-extrabold text-[#1c1e24] mt-0.5">
+                              {tripDetails.routeDetails.estimatedDurationMinutes ? `${tripDetails.routeDetails.estimatedDurationMinutes} mins` : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Assigned Shop info */}
+                      <div className="p-3.5 rounded-xl bg-[#faf8f5] border border-[#e5e1da]">
+                        <p className="text-[10px] font-bold uppercase text-[#8c8e96]">Assigned Shop</p>
+                        {tripDetails.assignedShop ? (
+                          <div className="flex justify-between items-center mt-1">
+                            <div>
+                              <p className="font-bold text-[#1c1e24]">{tripDetails.assignedShop.shopName}</p>
+                              <p className="text-[#5a5f6b]">{tripDetails.assignedShop.village || "No village specified"}</p>
+                            </div>
+                            <span className="text-xs font-semibold text-[#1f6e48] bg-[#eef7f2] border border-[#a8d8bc] px-2 py-0.5 rounded">
+                              Claimed & Active
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-[#8c8e96] italic mt-0.5">Open — waiting for a local shop claim</p>
+                        )}
+                      </div>
+
+                      {/* Grouped Orders list */}
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#8c8e96] mb-2">
+                          Grouped Orders ({tripDetails.orders?.length || 0})
+                        </p>
+                        <div className="border border-[#e5e1da] rounded-xl overflow-hidden divide-y divide-[#f0ece6]">
+                          {(tripDetails.orders || []).map((ord: any, idx: number) => (
+                            <div key={ord._id || idx} className="p-3 flex items-center justify-between hover:bg-[#faf8f5]">
+                              <div>
+                                <span className="font-mono text-xs font-bold text-[#1c1e24]">
+                                  #{ord.code || (ord._id ? ord._id.slice(-6).toUpperCase() : `ORD-${idx + 1}`)}
+                                </span>
+                                <p className="text-[11px] text-[#5a5f6b] mt-0.5">
+                                  {ord.farmer?.name || "Local Farmer"} · {ord.destination?.village || "Regional"}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs font-bold text-[#1c1e24]">
+                                  {ord.products?.map((p: any) => `${p.quantity} ${p.name}`).join(", ") || `${ord.totalAmount || 0} INR`}
+                                </span>
+                                <p className="text-[10px] text-[#8c8e96]">{ord.status}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Timestamps */}
+                      <div className="border-t border-[#e5e1da] pt-3 flex flex-wrap justify-between text-[11px] text-[#8c8e96]">
+                        <span>Created: {new Date(tripDetails.createdAt).toLocaleString()}</span>
+                        {tripDetails.claimedAt && <span>Claimed: {new Date(tripDetails.claimedAt).toLocaleString()}</span>}
+                        {tripDetails.completedAt && <span>Completed: {new Date(tripDetails.completedAt).toLocaleString()}</span>}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#902020]">Trip details unavailable.</p>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTripId(null)}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#faf8f5] border border-[#d6d1c7] text-[#1c1e24] hover:bg-[#eee9df]"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
         </main>
