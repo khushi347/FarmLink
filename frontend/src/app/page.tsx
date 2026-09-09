@@ -38,6 +38,7 @@ import {
 } from "@/components/Icons";
 import MapView from "@/components/map/MapView";
 import SettingsSection from "@/components/SettingsSection";
+import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -595,6 +596,13 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {/* ── ANALYTICS & SAVINGS (MODULE 18) ── */}
+            {activeTab === "analytics" && (
+              <div className="page-enter">
+                <AnalyticsDashboard token={token || undefined} />
+              </div>
+            )}
 
             {/* ── OVERVIEW ── */}
             {activeTab === "overview" && (

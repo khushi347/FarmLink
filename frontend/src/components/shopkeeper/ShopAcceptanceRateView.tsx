@@ -80,10 +80,10 @@ export default function ShopAcceptanceRateView({
           <div className="md:col-span-7 space-y-4">
             <div>
               <h3 className={`${cormorant.className} text-2xl font-semibold text-[#1c1e24]`}>
-                Acceptance &amp; Fulfillment Rate
+                Claim Share / Estimated Acceptance
               </h3>
               <p className="text-xs text-[#5a5f6b] mt-1 leading-relaxed">
-                Measures the percentage of regional corridors offered to your shop that you claim and deliver. Maintaining a consistent acceptance rate ensures continuous allocation of high-demand orders.
+                Measures the percentage of regional corridors offered in your area that your shop claims and fulfills. Note: FarmLink operates a broadcast corridor pool and does not record individual shop rejection events.
               </p>
             </div>
 

@@ -133,6 +133,11 @@ export interface ShopDashboardMetrics {
   totalOrders: number;
   revenue: number;
   acceptanceRate: number;
+  claimShareRate?: number;
+  metricLabel?: string;
+  averageTripDistanceKm?: number;
+  distanceSavedKm?: number;
+  cooperativeSavingsInr?: number;
   unreadNotifications: number;
   shopName: string;
   village: string;
@@ -170,6 +175,10 @@ export interface ShopNotification {
 export interface ShopRevenueData {
   totalRevenue: number;
   completedTripsCount: number;
+  averageTripDistanceKm?: number;
+  totalDistanceKm?: number;
+  totalDistanceSavedKm?: number;
+  cooperativeSavingsInr?: number;
   trips: ShopTrip[];
   isDemo: boolean;
 }
@@ -230,6 +239,9 @@ export const shopApi = {
 
   getRevenue: (token?: string) =>
     request<{ success: boolean; data: ShopRevenueData }>("/shop/revenue", {}, token),
+
+  getAnalytics: (token?: string) =>
+    request<{ success: boolean; data: ShopAnalyticsData }>("/shop/analytics", {}, token),
 
   getOrders: (params?: { status?: string; serviceType?: string }, token?: string) => {
     const query = new URLSearchParams();
@@ -403,6 +415,92 @@ export const adminApi = {
 
   getTripDetails: (tripId: string, token?: string) =>
     request<{ success: boolean; data: AdminTripDetails }>(`/admin/trips/${tripId}`, {}, token),
+};
+
+export interface DailyOrderTrend {
+  date: string;
+  totalOrders: number;
+  groupedOrders: number;
+  completedOrders: number;
+}
+
+export interface PlatformAnalyticsSummary {
+  dailyOrdersToday: number;
+  totalOrders: number;
+  ordersGrouped: number;
+  ordersGroupedPercentage: number;
+  tripsCreated: number;
+  activeShops: number;
+  completedDeliveries: number;
+  averageOrdersPerTrip: number;
+}
+
+export interface PlatformAnalyticsData {
+  summary: PlatformAnalyticsSummary;
+  timeseries: DailyOrderTrend[];
+  isDemo: boolean;
+}
+
+export interface CorridorEfficiencyItem {
+  corridor: string;
+  tripsCount: number;
+  deliveriesCount: number;
+  individualDistanceKm: number;
+  sharedDistanceKm: number;
+  distanceSavedKm: number;
+  savedCostInr: number;
+}
+
+export interface LogisticsAnalyticsData {
+  totalTripsEvaluated: number;
+  totalDeliveries: number;
+  totalDistanceKm: number;
+  totalSharedDistanceKm: number;
+  totalIndividualDistanceKm: number;
+  totalDistanceSavedKm: number;
+  distanceSavedPercentage: number;
+  estimatedFuelSavedInr: number;
+  estimatedDeliveryCostSavedInr: number;
+  corridorBreakdown: CorridorEfficiencyItem[];
+  assumptions: {
+    fuelCostPerKm: number;
+    deliveryCostPerKm: number;
+    baseline: string;
+    disclaimer: string;
+  };
+  isDemo: boolean;
+}
+
+export interface ShopAnalyticsData {
+  revenue: number;
+  tripsCompleted: number;
+  activeTrips: number;
+  availableTrips: number;
+  acceptanceRate: number;
+  claimShareRate: number;
+  metricLabel: string;
+  metricExplanation: string;
+  averageTripDistanceKm: number;
+  totalDistanceDeliveredKm: number;
+  totalDistanceSavedKm: number;
+  cooperativeSavingsContributedInr: number;
+  fuelSavingsInr: number;
+  shopName?: string;
+  village?: string;
+  assumptions: {
+    deliveryCostPerKm: number;
+    fuelCostPerKm: number;
+  };
+  isDemo: boolean;
+}
+
+export const analyticsApi = {
+  getPlatform: (params?: { days?: number }, token?: string) => {
+    const qs = params?.days ? `?days=${params.days}` : "";
+    return request<{ success: boolean; data: PlatformAnalyticsData }>(`/analytics/platform${qs}`, {}, token);
+  },
+  getLogistics: (token?: string) =>
+    request<{ success: boolean; data: LogisticsAnalyticsData }>("/analytics/logistics", {}, token),
 };
 
 

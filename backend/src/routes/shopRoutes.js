@@ -15,6 +15,7 @@ router.get("/trips/accepted", shopController.getAcceptedTrips);
 router.get("/trips/completed", shopController.getCompletedTrips);
 router.get("/orders", shopController.getOrders);
 router.get("/revenue", shopController.getRevenue);
+router.get("/analytics", shopController.getAnalytics);
 
 // Notification endpoints
 router.get("/notifications", shopController.getNotifications);

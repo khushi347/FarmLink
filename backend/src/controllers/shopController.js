@@ -4,6 +4,7 @@ const Shop = require("../models/Shop");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const seedShopkeeperDemo = require("../seed/seedShopkeeperDemo");
+const analyticsService = require("../services/analyticsService");
 
 /**
  * Helper to calculate distance in km between two [lng, lat] coordinate pairs
@@ -195,6 +196,26 @@ exports.getDashboard = async (req, res) => {
             isDemo: shop.isDemo ? true : { $ne: true },
         });
 
+        // Compute distance and savings on completed trips
+        const completedWithOrders = await TripBlock.find({
+            assignedShop: shopId,
+            status: "COMPLETED",
+            isDemo: shop.isDemo ? true : { $ne: true },
+        }).populate("assignedShop orders");
+
+        let totalDistance = 0;
+        let totalSaved = 0;
+        completedWithOrders.forEach((t) => {
+            const m = analyticsService.calculateTripDeliveryDistances(t);
+            totalDistance += m.sharedDistanceKm;
+            totalSaved += m.distanceSavedKm;
+        });
+
+        const averageTripDistanceKm = completedTrips > 0
+            ? Math.round((totalDistance / completedTrips) * 10) / 10
+            : 0;
+        const cooperativeSavingsInr = Math.round(totalSaved * (analyticsService.DELIVERY_COST_PER_KM || 8.5) * 100) / 100;
+
         return res.status(200).json({
             success: true,
             data: {
@@ -204,6 +225,11 @@ exports.getDashboard = async (req, res) => {
                 totalOrders,
                 revenue,
                 acceptanceRate,
+                claimShareRate: acceptanceRate,
+                metricLabel: "Claim Share / Estimated Acceptance",
+                averageTripDistanceKm,
+                distanceSavedKm: Math.round(totalSaved * 10) / 10,
+                cooperativeSavingsInr,
                 unreadNotifications,
                 shopName: shop.shopName,
                 village: shop.village,
@@ -392,19 +418,62 @@ exports.getRevenue = async (req, res) => {
             .sort("-completedAt");
 
         let totalRevenue = 0;
+        let totalDistanceKm = 0;
+        let totalSavedKm = 0;
+
         const formattedTrips = trips.map((t) => {
             const formatted = formatTrip(t, shop.location);
             totalRevenue += formatted.estimatedEarnings;
+            const distMetrics = analyticsService.calculateTripDeliveryDistances(t);
+            formatted.distanceKm = distMetrics.sharedDistanceKm;
+            formatted.individualDistanceKm = distMetrics.individualDistanceKm;
+            formatted.distanceSavedKm = distMetrics.distanceSavedKm;
+            formatted.deliveryCostSavedInr = distMetrics.deliveryCostSavedInr;
+            totalDistanceKm += distMetrics.sharedDistanceKm;
+            totalSavedKm += distMetrics.distanceSavedKm;
             return formatted;
         });
+
+        const averageTripDistanceKm = formattedTrips.length > 0
+            ? Math.round((totalDistanceKm / formattedTrips.length) * 10) / 10
+            : 0;
+        const cooperativeSavingsInr = Math.round(totalSavedKm * (analyticsService.DELIVERY_COST_PER_KM || 8.5) * 100) / 100;
 
         return res.status(200).json({
             success: true,
             data: {
                 totalRevenue,
                 completedTripsCount: formattedTrips.length,
+                averageTripDistanceKm,
+                totalDistanceKm: Math.round(totalDistanceKm * 10) / 10,
+                totalDistanceSavedKm: Math.round(totalSavedKm * 10) / 10,
+                cooperativeSavingsInr,
                 trips: formattedTrips,
                 isDemo: true,
+            },
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+/**
+ * GET /api/shop/analytics — Comprehensive shopkeeper analytics (Module 18)
+ */
+exports.getAnalytics = async (req, res) => {
+    try {
+        const shop = await getShopForUser(req);
+        const data = await analyticsService.getShopAnalytics(shop._id, Boolean(shop.isDemo));
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                ...data,
+                shopName: shop.shopName,
+                village: shop.village,
             },
         });
     } catch (error) {

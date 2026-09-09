@@ -28,12 +28,14 @@ export default function ShopRevenueView({
   const totalRevenue = revenueData?.totalRevenue || 0;
   const completedCount = revenueData?.completedTripsCount || 0;
   const avgEarnings = completedCount > 0 ? Math.round(totalRevenue / completedCount) : 0;
+  const avgDistance = revenueData?.averageTripDistanceKm || 0;
+  const coopSavings = revenueData?.cooperativeSavingsInr || 0;
   const trips = revenueData?.trips || [];
 
   return (
     <div className={`space-y-6 ${jakarta.className}`}>
       {/* Top Stat Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-xl bg-white border border-[#e5e1da]">
           <p className="text-[11px] font-medium uppercase tracking-wider text-[#8c8e96]">
             Total Revenue
@@ -64,15 +66,29 @@ export default function ShopRevenueView({
 
         <div className="p-5 rounded-xl bg-white border border-[#e5e1da]">
           <p className="text-[11px] font-medium uppercase tracking-wider text-[#8c8e96]">
-            Average Per Trip
+            Average Trip Distance
           </p>
           <p
-            className={`${cormorant.className} text-3xl sm:text-4xl font-semibold text-[#1c1e24] mt-2`}
+            className={`${cormorant.className} text-3xl sm:text-4xl font-semibold text-[#234e72] mt-2`}
           >
-            ₹{avgEarnings.toLocaleString()}
+            {avgDistance} <span className="text-sm font-sans font-normal text-[#8c8e96]">km</span>
           </p>
           <p className="text-xs text-[#8c8e96] mt-1">
-            Average corridor return
+            Avg corridor route length
+          </p>
+        </div>
+
+        <div className="p-5 rounded-xl bg-white border border-[#e5e1da]">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[#8c8e96]">
+            Est. Cooperative Savings
+          </p>
+          <p
+            className={`${cormorant.className} text-3xl sm:text-4xl font-semibold text-[#b84a0a] mt-2`}
+          >
+            ₹{coopSavings.toLocaleString()}
+          </p>
+          <p className="text-xs text-[#8c8e96] mt-1">
+            Contributed via batched dispatch
           </p>
         </div>
       </div>

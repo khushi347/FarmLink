@@ -27,9 +27,11 @@ const claimRoutes=require("./routes/TripRoutes");
 const shopRoutes=require("./routes/shopRoutes");
 const mapRoutes=require("./routes/mapRoutes");
 const demoRoutes=require("./routes/demoRoutes");
+const analyticsRoutes=require("./routes/analyticsRoutes");
 
 app.use("/api/auth",authRoutes);
 app.use("/api/admin",adminControllerRoutes);
+app.use("/api/analytics",analyticsRoutes);
 app.use("/api/webhooks",webhookRoutes);
 app.use("/api/ai",aiRoutes);
 app.use("/api/orders", orderRoutes);
