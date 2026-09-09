@@ -39,6 +39,7 @@ import {
 import MapView from "@/components/map/MapView";
 import SettingsSection from "@/components/SettingsSection";
 import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
+import AiOperationsAssistant from "@/components/ai/AiOperationsAssistant";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -596,6 +597,13 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {/* ── AI OPERATIONS ASSISTANT (MODULE 19) ── */}
+            {activeTab === "assistant" && (
+              <div className="page-enter">
+                <AiOperationsAssistant token={token || undefined} role="admin" />
+              </div>
+            )}
 
             {/* ── ANALYTICS & SAVINGS (MODULE 18) ── */}
             {activeTab === "analytics" && (

@@ -11,6 +11,7 @@ import {
   StoreIcon,
   LogOutIcon,
   XIcon,
+  BrainIcon,
 } from "@/components/Icons";
 
 const cormorant = Cormorant_Garamond({
@@ -86,6 +87,12 @@ export default function ShopSidebar({
       label: "Notifications",
       Icon: StoreIcon,
       badge: metrics?.unreadNotifications ? String(metrics.unreadNotifications) : null,
+    },
+    {
+      id: "assistant",
+      label: "AI Assistant",
+      Icon: BrainIcon,
+      badge: "AI",
     },
   ];
 

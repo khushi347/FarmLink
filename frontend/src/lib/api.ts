@@ -503,5 +503,37 @@ export const analyticsApi = {
     request<{ success: boolean; data: LogisticsAnalyticsData }>("/analytics/logistics", {}, token),
 };
 
+export interface GroupingRecommendation {
+  type: string;
+  tripId: string;
+  tripCode: string;
+  serviceType: string;
+  corridor: string;
+  currentStatus: string;
+  existingOrderCount: number;
+  ungroupedOrderCount: number;
+  orderCodes: string[];
+  closestProximityKm: number;
+  potentialDistanceSavedKm: number;
+  potentialCostSavedInr: number;
+  factualDescription: string;
+}
+
+export interface AssistantResponseData {
+  question: string;
+  answer: string;
+  source: "ai" | "deterministic_fallback";
+  recommendations: GroupingRecommendation[];
+  structuredContext: any;
+}
+
+export const aiAssistantApi = {
+  ask: (question: string, token?: string) =>
+    request<{ success: boolean; data: AssistantResponseData }>("/ai/assistant", {
+      method: "POST",
+      body: JSON.stringify({ question }),
+    }, token),
+};
+
 
 

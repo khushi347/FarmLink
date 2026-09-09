@@ -18,6 +18,7 @@ import ShopTripCard from "@/components/shopkeeper/ShopTripCard";
 import ShopNotificationsDrawer from "@/components/shopkeeper/ShopNotificationsDrawer";
 import ShopRevenueView from "@/components/shopkeeper/ShopRevenueView";
 import ShopAcceptanceRateView from "@/components/shopkeeper/ShopAcceptanceRateView";
+import AiOperationsAssistant from "@/components/ai/AiOperationsAssistant";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -528,11 +529,18 @@ export default function ShopkeeperDashboardPage() {
           {/* 5. Acceptance Rate Tab */}
           {activeTab === "acceptance" && (
             <ShopAcceptanceRateView
-              acceptanceRate={metrics?.acceptanceRate || 100}
-              availableCount={availableTrips.length}
-              activeCount={activeTrips.length}
-              completedCount={completedTrips.length}
+              acceptanceRate={metrics?.acceptanceRate ?? 100}
+              availableCount={metrics?.available ?? 0}
+              activeCount={metrics?.acceptedTrips ?? 0}
+              completedCount={metrics?.completedTrips ?? 0}
             />
+          )}
+
+          {/* 6. AI Operations Assistant Tab */}
+          {activeTab === "assistant" && (
+            <div className="space-y-4">
+              <AiOperationsAssistant token={token || undefined} role="shopkeeper" />
+            </div>
           )}
 
           {/* 6. Notifications Tab */}

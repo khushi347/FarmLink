@@ -16,6 +16,7 @@ import {
   UsersIcon,
   PackageIcon,
   TrendingUpIcon,
+  BrainIcon,
 } from "./Icons";
 
 const cormorant = Cormorant_Garamond({
@@ -53,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     groupLabel: "Operations",
     items: [
       { id: "overview",   label: "Overview",            Icon: DashboardIcon,  badge: null },
+      { id: "assistant",  label: "AI Assistant",        Icon: BrainIcon,      badge: "AI", isLive: true },
       { id: "analytics",  label: "Analytics & Savings", Icon: TrendingUpIcon, badge: "Savings", isLive: true },
       { id: "orders",     label: "Orders",              Icon: ShoppingBagIcon,badge: null },
       { id: "tripblocks", label: "TripBlocks",          Icon: TripBlockIcon,  badge: null },
