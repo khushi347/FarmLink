@@ -83,4 +83,69 @@ export const demoApi = {
     /** Fetch demo-scoped map data (same shape as /api/map/data). */
     getMapData: (sessionId: string) =>
         request<import("@/types/map").MapDataResponse>(`/map?sessionId=${encodeURIComponent(sessionId)}`),
+
+    /* ── Recruiter-Facing Demo Scenarios (Module 20) ────────────────── */
+    getScenarioPresets: () =>
+        request<{ success: boolean; presets: Record<string, { transcript: string; language: string; expected: any }> }>("/scenarios/presets"),
+
+    runAiOrderScenario: (text: string, sessionId: string) =>
+        request<{
+            success: boolean;
+            extractionSource: string;
+            transcript: string;
+            aiData: { serviceType: string; products: Array<{ name: string; quantity: number; unit: string }>; deliveryDate: string; language: string };
+            order: { id: string; code: string; serviceType: string; products: any[]; status: string; requestedDate: string; coordinates: [number, number]; isDemo: boolean; demoSessionId: string };
+            farmer: { id: string; name: string; phone: string; language: string };
+        }>("/scenarios/ai-order", {
+            method: "POST",
+            body: JSON.stringify({ text, sessionId }),
+        }),
+
+    runSharedDeliveryScenario: (sessionId: string) =>
+        request<{
+            success: boolean;
+            seededOrdersCount: number;
+            groupedOrdersCount: number;
+            allGroupedVerified: boolean;
+            tripBlock: { id: string; code: string; serviceType: string; status: string; centerCoordinates: [number, number]; orderCount: number; estimatedEarnings: number; isDemo: boolean; demoSessionId: string };
+            orders: Array<{ id: string; code: string; farmerName: string; village: string; quantity: number; coordinates: [number, number] }>;
+        }>("/scenarios/shared-delivery", {
+            method: "POST",
+            body: JSON.stringify({ sessionId }),
+        }),
+
+    runShopCompetitionScenario: (sessionId: string) =>
+        request<{
+            success: boolean;
+            tripId: string;
+            tripCode: string;
+            finalLifecycleStatus: string;
+            winner: { shopKey: string; shopId: string; shopName: string; httpStatus: number; message: string };
+            rejectedShops: Array<{ shopKey: string; shopId: string; shopName: string; httpStatus: number; message: string }>;
+        }>("/scenarios/shop-competition", {
+            method: "POST",
+            body: JSON.stringify({ sessionId }),
+        }),
+
+    runRealtimeNotificationScenario: (sessionId: string) =>
+        request<{
+            success: boolean;
+            notification: { id: string; title: string; message: string; channel: string; type: string; isDemo: boolean; createdAt: string };
+            tripBlock: { id: string; code: string; status: string; earnings: number };
+            socketEmitted: boolean;
+        }>("/scenarios/realtime-notification", {
+            method: "POST",
+            body: JSON.stringify({ sessionId }),
+        }),
+
+    resetScenarios: (sessionId: string) =>
+        request<{
+            success: boolean;
+            sessionId: string;
+            deleted: { orders: number; farmers: number; tripBlocks: number; notifications: number };
+        }>("/scenarios/reset", {
+            method: "DELETE",
+            body: JSON.stringify({ sessionId }),
+        }),
 };
+

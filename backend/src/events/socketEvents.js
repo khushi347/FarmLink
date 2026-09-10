@@ -3,10 +3,12 @@ const socketAuth = require("../middleware/socketAuth");
 const Shop = require("../models/Shop");
 const crypto = require("crypto");
 const demoController = require("../controllers/demoController");
+const demoScenarioService = require("../services/demoScenarioService");
 
 const setupSocketEvents = (io) => {
-    // Give demoController access to the io instance for emitting demo:* events
+    // Give demoController and demoScenarioService access to the io instance for emitting demo:* events
     demoController.setIo(io);
+    demoScenarioService.setIo(io);
 
     // Authenticate every Socket.io connection
     io.use(socketAuth);
@@ -60,6 +62,9 @@ const setupSocketEvents = (io) => {
 
         if (order.isDemo) {
             io.to("demo_shopkeepers").emit("new_order", payload);
+            if (order.demoSessionId) {
+                io.to(`demo:${order.demoSessionId}`).emit("new_order", payload);
+            }
         } else if (shopIds && Array.isArray(shopIds)) {
             shopIds.forEach((shopId) => {
                 io.to(`shop:${shopId}`).emit("new_order", payload);
@@ -78,6 +83,17 @@ const setupSocketEvents = (io) => {
 
         if (isDemo) {
             io.to("demo_shopkeepers").emit("trip_created", payload);
+            if (tripBlock.demoSessionId) {
+                io.to(`demo:${tripBlock.demoSessionId}`).emit("trip_created", payload);
+                io.to(`demo:${tripBlock.demoSessionId}`).emit("notification_received", {
+                    eventId: payload.eventId,
+                    occurredAt: payload.occurredAt,
+                    title: "New Trip Available",
+                    message: `A new ${tripBlock.serviceType} trip is open for claiming in your corridor.`,
+                    tripId: tripBlock._id,
+                    type: "TripBlock",
+                });
+            }
         } else {
             if (shopIds && Array.isArray(shopIds)) {
                 shopIds.forEach((shopId) => {

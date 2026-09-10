@@ -24,7 +24,9 @@ import Link from "next/link";
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import { demoApi } from "@/lib/demoApi";
 import { useDemoRealtime } from "@/hooks/useDemoRealtime";
+import DemoControlCenter from "@/components/demo/DemoControlCenter";
 import type { MapShop, MapOrder, MapTripBlock, MapFilterState, SelectedMapEntity } from "@/types/map";
+
 
 const cormorant = Cormorant_Garamond({
     subsets: ["latin"],
@@ -144,8 +146,12 @@ export default function DemoPage() {
     // Session identity (UUID, persisted in sessionStorage for page refresh)
     const [sessionId, setSessionId] = useState<string | null>(null);
 
+    // Active View Mode: "scenarios" (Recruiter Demo Lab) vs "walkthrough" (Full linear demo)
+    const [demoMode, setDemoMode] = useState<"scenarios" | "walkthrough">("scenarios");
+
     // Demo stage state
     const [stage, setStage] = useState<StageKey>("IDLE");
+
     const [isStepping, setIsStepping] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -428,70 +434,106 @@ export default function DemoPage() {
                 </div>
             </header>
 
+            {/* ── MODE SWITCHER ── */}
+            <div className="flex justify-center pt-6 pb-2 px-4">
+                <div className="inline-flex p-1 rounded-xl bg-white border border-[#e5e1da] shadow-xs">
+                    <button
+                        type="button"
+                        onClick={() => setDemoMode("scenarios")}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            demoMode === "scenarios"
+                                ? "bg-[#c26d40] text-white shadow-xs"
+                                : "text-[#5a5f6b] hover:text-[#1c1e24]"
+                        }`}
+                    >
+                        🎯 Recruiter Scenarios Lab (Module 20)
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setDemoMode("walkthrough")}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            demoMode === "walkthrough"
+                                ? "bg-[#c26d40] text-white shadow-xs"
+                                : "text-[#5a5f6b] hover:text-[#1c1e24]"
+                        }`}
+                    >
+                        ⚡ Full Lifecycle Walkthrough
+                    </button>
+                </div>
+            </div>
+
             {/* ── HERO ── */}
-            <div className="px-5 sm:px-8 pt-8 pb-6 text-center">
+            <div className="px-5 sm:px-8 pt-4 pb-6 text-center">
                 <h1
                     className={`${cormorant.className} text-[28px] sm:text-[38px] font-medium leading-tight tracking-wide`}
                     style={{ color: "#1c1e24" }}
                 >
-                    See FarmLink in Action
+                    {demoMode === "scenarios" ? "Recruiter-Facing Live System Scenarios" : "See FarmLink in Action"}
                 </h1>
-                <p className="mt-2 text-sm font-light max-w-lg mx-auto" style={{ color: "#8c8e96" }}>
-                    Watch how a farmer's WhatsApp message becomes a coordinated rural delivery — automatically, in real time.
+                <p className="mt-2 text-sm font-light max-w-xl mx-auto" style={{ color: "#8c8e96" }}>
+                    {demoMode === "scenarios"
+                        ? "Execute each core FarmLink scenario using real Gemini AI extraction, geospatial grouping, atomic concurrency locks, and Socket.IO pushes."
+                        : "Watch how a farmer's WhatsApp message becomes a coordinated rural delivery — automatically, in real time."}
                 </p>
             </div>
 
-            {/* ── PROGRESS STEPPER ── */}
-            <div className="px-5 sm:px-8 pb-5">
-                <div className="max-w-2xl mx-auto flex items-center gap-0">
-                    {progressSteps.map((step, i) => {
-                        const done = currentIdx > i + 1;
-                        const active = currentIdx === i + 1;
-                        return (
-                            <React.Fragment key={step.label}>
-                                <div className="flex flex-col items-center gap-1 min-w-0">
-                                    <div
-                                        className="h-8 w-8 rounded-full flex items-center justify-center text-sm transition-all duration-500 shrink-0"
-                                        style={{
-                                            background: done
-                                                ? "#1f6e48"
-                                                : active
-                                                ? "#c26d40"
-                                                : "#ece8e0",
-                                            color: done || active ? "#fff" : "#8c8e96",
-                                            border: active ? "2px solid #c26d40" : "2px solid transparent",
-                                            boxShadow: active ? "0 0 0 4px rgba(194,109,64,0.15)" : "none",
-                                        }}
-                                    >
-                                        {done ? "✓" : active ? step.icon : step.icon}
+            {/* ── PROGRESS STEPPER (Walkthrough Mode Only) ── */}
+            {demoMode === "walkthrough" && (
+                <div className="px-5 sm:px-8 pb-5">
+                    <div className="max-w-2xl mx-auto flex items-center gap-0">
+                        {progressSteps.map((step, i) => {
+                            const done = currentIdx > i + 1;
+                            const active = currentIdx === i + 1;
+                            return (
+                                <React.Fragment key={step.label}>
+                                    <div className="flex flex-col items-center gap-1 min-w-0">
+                                        <div
+                                            className="h-8 w-8 rounded-full flex items-center justify-center text-sm transition-all duration-500 shrink-0"
+                                            style={{
+                                                background: done
+                                                    ? "#1f6e48"
+                                                    : active
+                                                    ? "#c26d40"
+                                                    : "#ece8e0",
+                                                color: done || active ? "#fff" : "#8c8e96",
+                                                border: active ? "2px solid #c26d40" : "2px solid transparent",
+                                                boxShadow: active ? "0 0 0 4px rgba(194,109,64,0.15)" : "none",
+                                            }}
+                                        >
+                                            {done ? "✓" : active ? step.icon : step.icon}
+                                        </div>
+                                        <span
+                                            className="text-[9px] font-bold text-center hidden sm:block"
+                                            style={{ color: done ? "#1f6e48" : active ? "#c26d40" : "#aaa", maxWidth: 52 }}
+                                        >
+                                            {step.label}
+                                        </span>
                                     </div>
-                                    <span
-                                        className="text-[9px] font-bold text-center hidden sm:block"
-                                        style={{ color: done ? "#1f6e48" : active ? "#c26d40" : "#aaa", maxWidth: 52 }}
-                                    >
-                                        {step.label}
-                                    </span>
-                                </div>
-                                {i < progressSteps.length - 1 && (
-                                    <div
-                                        className="flex-1 h-0.5 mx-1 transition-all duration-500"
-                                        style={{ background: done ? "#1f6e48" : "#e5e1da" }}
-                                    />
-                                )}
-                            </React.Fragment>
-                        );
-                    })}
+                                    {i < progressSteps.length - 1 && (
+                                        <div
+                                            className="flex-1 h-0.5 mx-1 transition-all duration-500"
+                                            style={{ background: done ? "#1f6e48" : "#e5e1da" }}
+                                        />
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* ── MAIN TWO-PANEL LAYOUT ── */}
             <div className="flex-1 px-4 sm:px-8 pb-8 flex flex-col lg:flex-row gap-5 max-w-7xl w-full mx-auto">
-
-                {/* LEFT — Timeline panel */}
-                <div
-                    className="lg:w-[420px] shrink-0 flex flex-col rounded-2xl overflow-hidden h-[540px] lg:h-[580px]"
-                    style={{ background: "#ffffff", border: "1px solid #e5e1da", boxShadow: "0 2px 24px rgba(28,30,36,0.04)" }}
-                >
+                {demoMode === "scenarios" ? (
+                    <div className="w-full lg:w-[560px] shrink-0">
+                        <DemoControlCenter sessionId={sessionId || ""} onRefreshMap={refreshMap} />
+                    </div>
+                ) : (
+                    /* LEFT — Timeline panel */
+                    <div
+                        className="lg:w-[420px] shrink-0 flex flex-col rounded-2xl overflow-hidden h-[540px] lg:h-[580px]"
+                        style={{ background: "#ffffff", border: "1px solid #e5e1da", boxShadow: "0 2px 24px rgba(28,30,36,0.04)" }}
+                    >
                     {/* Panel header */}
                     <div className="px-5 py-4 flex items-center justify-between shrink-0" style={{ borderBottom: "1px solid #e5e1da" }}>
                         <div>
@@ -690,6 +732,7 @@ export default function DemoPage() {
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* RIGHT — Map panel */}
                 <div

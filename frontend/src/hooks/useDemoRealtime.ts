@@ -18,7 +18,10 @@ export type DemoEventName =
     | "demo:order_submitted"
     | "demo:tripblock_created"
     | "demo:trip_claimed"
-    | "demo:trip_completed";
+    | "demo:trip_completed"
+    | "notification_received"
+    | "trip_created";
+
 
 export type DemoConnectionStatus =
     | "idle"
@@ -69,7 +72,10 @@ export function useDemoRealtime(sessionId: string | null) {
                     "demo:tripblock_created",
                     "demo:trip_claimed",
                     "demo:trip_completed",
+                    "notification_received",
+                    "trip_created",
                 ];
+
 
                 demoEvents.forEach((event) => {
                     socket.on(event, (payload: unknown) => {
