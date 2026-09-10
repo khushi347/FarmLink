@@ -2,14 +2,13 @@
 
 /**
  * FarmLink — Public Demo Page (/demo)
- * Module 13: Demo Simulation Layer
+ * Interactive Simulation Layer & Live Scenarios
  *
  * A polished, public-facing page that walks any visitor through the
  * complete FarmLink workflow in real-time:
  *   Farmer WhatsApp request → AI processing → Order → TripBlock → Shop claim → Delivery
  *
- * Design: warm, clean, modern. Left panel = narrative timeline.
- * Right panel = live Leaflet map with real data from the backend.
+ * Design: warm, clean, modern.
  */
 
 import React, {
@@ -146,7 +145,7 @@ export default function DemoPage() {
     // Session identity (UUID, persisted in sessionStorage for page refresh)
     const [sessionId, setSessionId] = useState<string | null>(null);
 
-    // Active View Mode: "scenarios" (Recruiter Demo Lab) vs "walkthrough" (Full linear demo)
+    // Active View Mode: "scenarios" (Interactive Scenarios) vs "walkthrough" (Full linear demo)
     const [demoMode, setDemoMode] = useState<"scenarios" | "walkthrough">("scenarios");
 
     // Demo stage state
@@ -446,7 +445,7 @@ export default function DemoPage() {
                                 : "text-[#5a5f6b] hover:text-[#1c1e24]"
                         }`}
                     >
-                        🎯 Recruiter Scenarios Lab (Module 20)
+                        🎯 Interactive Scenarios
                     </button>
                     <button
                         type="button"
@@ -468,7 +467,7 @@ export default function DemoPage() {
                     className={`${cormorant.className} text-[28px] sm:text-[38px] font-medium leading-tight tracking-wide`}
                     style={{ color: "#1c1e24" }}
                 >
-                    {demoMode === "scenarios" ? "Recruiter-Facing Live System Scenarios" : "See FarmLink in Action"}
+                    {demoMode === "scenarios" ? "Interactive System Scenarios" : "See FarmLink in Action"}
                 </h1>
                 <p className="mt-2 text-sm font-light max-w-xl mx-auto" style={{ color: "#8c8e96" }}>
                     {demoMode === "scenarios"
@@ -522,14 +521,73 @@ export default function DemoPage() {
                 </div>
             )}
 
-            {/* ── MAIN TWO-PANEL LAYOUT ── */}
-            <div className="flex-1 px-4 sm:px-8 pb-8 flex flex-col lg:flex-row gap-5 max-w-7xl w-full mx-auto">
-                {demoMode === "scenarios" ? (
-                    <div className="w-full lg:w-[560px] shrink-0">
-                        <DemoControlCenter sessionId={sessionId || ""} onRefreshMap={refreshMap} />
+            {/* ── MAIN CONTENT AREA ── */}
+            {demoMode === "scenarios" ? (
+                /* ── SCENARIOS MODE: UNIFIED RESPONSIVE DASHBOARD ── */
+                <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 pb-12 space-y-6">
+                    {/* ── LIVE CORRIDOR MAP HERO DASHBOARD ── */}
+                    <div
+                        className="rounded-2xl overflow-hidden bg-white border border-[#e5e1da] shadow-xs flex flex-col"
+                    >
+                        {/* Map Toolbar / Header */}
+                        <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e1da]">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h2 className={`${cormorant.className} text-xl font-bold text-[#1c1e24]`}>
+                                        Live Operational Corridor Map
+                                    </h2>
+                                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#faf8f5] text-[#8c8e96] border border-[#e5e1da]">
+                                        Bhopal Region
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-[#8c8e96] font-medium mt-0.5">
+                                    Real-time geospatial cluster tracking · Seeds, fertilizers &amp; pesticide orders
+                                </p>
+                            </div>
+
+                            {/* Status & Counts Chips */}
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#faf8f5] border border-[#e5e1da] text-[#5a5f6b]">
+                                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: realtimeColor }} />
+                                    Socket.IO: {realtimeStatus === "connected" ? "Live" : realtimeStatus}
+                                </span>
+                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#fff8f2] border border-[#f5d5b8] text-[#c26d40]">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[#c26d40]" />
+                                    {orders.length} {orders.length === 1 ? "Order" : "Orders"}
+                                </span>
+                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f0f5fb] border border-[#c8daf0] text-[#426890]">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[#426890]" />
+                                    {tripBlocks.length} {tripBlocks.length === 1 ? "TripBlock" : "TripBlocks"}
+                                </span>
+                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#eef7f2] border border-[#a8d8bc] text-[#1f6e48]">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[#1f6e48]" />
+                                    {shops.length} Retail Hubs
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Interactive Leaflet Map */}
+                        <div className="h-[360px] sm:h-[400px] w-full relative">
+                            <FarmLinkMap
+                                key={mapKey}
+                                shops={shops}
+                                orders={orders}
+                                tripBlocks={tripBlocks}
+                                filters={DEFAULT_FILTER}
+                                selectedEntity={selectedEntity}
+                                onSelectEntity={setSelectedEntity}
+                                className="w-full h-full"
+                            />
+                        </div>
                     </div>
-                ) : (
-                    /* LEFT — Timeline panel */
+
+                    {/* ── INTERACTIVE SCENARIOS CONSOLE (2x2 Balanced Grid) ── */}
+                    <DemoControlCenter sessionId={sessionId || ""} onRefreshMap={refreshMap} />
+                </div>
+            ) : (
+                /* ── WALKTHROUGH MODE (Side-by-side two-panel) ── */
+                <div className="flex-1 px-4 sm:px-8 pb-8 flex flex-col lg:flex-row gap-5 max-w-7xl w-full mx-auto">
+                    {/* LEFT — Timeline panel */}
                     <div
                         className="lg:w-[420px] shrink-0 flex flex-col rounded-2xl overflow-hidden h-[540px] lg:h-[580px]"
                         style={{ background: "#ffffff", border: "1px solid #e5e1da", boxShadow: "0 2px 24px rgba(28,30,36,0.04)" }}
@@ -732,7 +790,6 @@ export default function DemoPage() {
                         </div>
                     </div>
                 </div>
-                )}
 
                 {/* RIGHT — Map panel */}
                 <div
@@ -780,6 +837,7 @@ export default function DemoPage() {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* ── WORKFLOW EXPLAINER (below panels) ── */}
             <div className="px-5 sm:px-8 pb-10">

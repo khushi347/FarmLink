@@ -84,7 +84,7 @@ export const demoApi = {
     getMapData: (sessionId: string) =>
         request<import("@/types/map").MapDataResponse>(`/map?sessionId=${encodeURIComponent(sessionId)}`),
 
-    /* ── Recruiter-Facing Demo Scenarios (Module 20) ────────────────── */
+    /* ── Interactive Demo Scenarios ────────────────── */
     getScenarioPresets: () =>
         request<{ success: boolean; presets: Record<string, { transcript: string; language: string; expected: any }> }>("/scenarios/presets"),
 

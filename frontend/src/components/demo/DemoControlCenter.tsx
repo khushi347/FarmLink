@@ -1,10 +1,9 @@
 "use client";
 
 /**
- * DemoControlCenter.tsx — Recruiter-Facing Demo Scenarios Hub
- * Module 20: Demo Scenarios
+ * DemoControlCenter.tsx — Interactive Demo Scenarios Hub
  *
- * Implements 4 interactive, production-grade recruiter scenarios using FarmLink's
+ * Implements 4 interactive, production-grade scenarios using FarmLink's
  * real APIs, Gemini AI extraction, geospatial grouping engine, atomic claim concurrency,
  * and Socket.IO real-time notification cascade.
  */
@@ -201,10 +200,10 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                 <div>
                     <div className="flex items-center gap-2.5">
                         <h2 className={`${cormorant.className} text-2xl font-bold tracking-tight text-[#1c1e24]`}>
-                            Recruiter Demo Control Center
+                            Demo Control Center
                         </h2>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eef7f2] text-[#1f6e48] border border-[#a8d8bc]">
-                            Live FarmLink Pipeline
+                            Live Pipeline
                         </span>
                     </div>
                     <p className="text-xs text-[#5a5f6b] mt-0.5">
@@ -253,13 +252,13 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                 </div>
             )}
 
-            {/* ── 4 SCENARIO CARDS GRID ─────────────────────────────── */}
-            <div className="grid grid-cols-1 gap-6">
+            {/* ── 4 SCENARIO CARDS GRID (Balanced 2-Column Responsive Dashboard) ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
 
                 {/* ══════════════════════════════════════════════════════════════
                     SCENARIO 1: AI ORDER INGESTION
                 ══════════════════════════════════════════════════════════════ */}
-                <div className="bg-white border border-[#e5e1da] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="bg-white border border-[#e5e1da] rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-2">
@@ -370,7 +369,7 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                 {/* ══════════════════════════════════════════════════════════════
                     SCENARIO 2: SHARED DELIVERY (GROUPING ENGINE)
                 ══════════════════════════════════════════════════════════════ */}
-                <div className="bg-white border border-[#e5e1da] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="bg-white border border-[#e5e1da] rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-2">
@@ -439,7 +438,7 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                 {/* ══════════════════════════════════════════════════════════════
                     SCENARIO 3: SHOP COMPETITION (ATOMIC CONCURRENCY)
                 ══════════════════════════════════════════════════════════════ */}
-                <div className="bg-white border border-[#e5e1da] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="bg-white border border-[#e5e1da] rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-2">
@@ -511,7 +510,7 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                                         </span>
                                     </div>
                                     <p className="font-bold text-[#1c1e24] mt-1">{competitionResult.winner.shopName}</p>
-                                    <p className="text-[10px] text-[#1f6e48] mt-0.5">Assigned &amp; Locked</p>
+                                    <p className="text-[10px] text-[#1f6e48] mt-0.5 font-medium">Claim Confirmed (CLAIMED)</p>
                                 </div>
 
                                 {/* Rejected 1 & 2 */}
@@ -535,7 +534,7 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                 {/* ══════════════════════════════════════════════════════════════
                     SCENARIO 4: REAL-TIME NOTIFICATION CASCADE
                 ══════════════════════════════════════════════════════════════ */}
-                <div className="bg-white border border-[#e5e1da] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="bg-white border border-[#e5e1da] rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-2">
