@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const demo = require("../controllers/demoController");
 const scenarioRoutes = require("./demoScenarioRoutes");
+const dataRoutes = require("./demoDataRoutes");
 
 // All demo routes are intentionally public (no auth middleware).
 // Demo data is isolated by isDemo:true + demoSessionId tags.
@@ -13,8 +14,11 @@ router.post("/step", demo.runStep);
 router.delete("/reset", demo.reset);
 router.get("/map", demo.getMapData);
 
-// Recruiter-Facing Demo Scenarios (Module 20)
+// Interactive Demo Scenarios
 router.use("/scenarios", scenarioRoutes);
+
+// Demo Data & Seed System
+router.use("/data", dataRoutes);
 
 module.exports = router;
 

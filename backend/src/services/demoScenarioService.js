@@ -25,6 +25,7 @@ const eventBus = require("../events/eventBus");
 const extractOrder = require("./geminiService");
 const groupOrder = require("./groupingService");
 const claimTripService = require("./claimTripService");
+const demoSeedService = require("./demoSeedService");
 const { ORDER_STATUS, TRIP_STATUS } = require("./lifecycleService");
 
 // Injected Socket.IO reference
@@ -121,73 +122,10 @@ const deterministicExtractFallback = (text = "") => {
 
 /**
  * Ensures the 3 isolated demo retail shops exist for Scenario 3 (Shop Competition).
+ * Reuses centralized persona infrastructure from demoSeedService.
  */
 const ensureThreeDemoShops = async () => {
-    const shopConfigs = [
-        {
-            key: "shop_a",
-            userName: "Ramesh Patel (Shop A)",
-            email: "demo.shop.a@farmlink.internal",
-            shopName: "Kisan Krishi Kendra (Shop A)",
-            village: "Rampura Hub",
-            phone: "+91 98000 00101",
-            coords: [77.4100, 23.2580],
-            category: ["Seeds", "Fertilizer", "Pesticides"],
-        },
-        {
-            key: "shop_b",
-            userName: "Suresh Meena (Shop B)",
-            email: "demo.shop.b@farmlink.internal",
-            shopName: "Green Valley Agro Store (Shop B)",
-            village: "Kolar Corridor",
-            phone: "+91 98000 00102",
-            coords: [77.4200, 23.2650],
-            category: ["Seeds", "Fertilizer", "Pesticides"],
-        },
-        {
-            key: "shop_c",
-            userName: "Anita Sharma (Shop C)",
-            email: "demo.shop.c@farmlink.internal",
-            shopName: "Mohan Agro Mart (Shop C)",
-            village: "Bhopal South",
-            phone: "+91 98000 00103",
-            coords: [77.4300, 23.2700],
-            category: ["Seeds", "Fertilizer", "Pesticides"],
-        },
-    ];
-
-    const shops = [];
-    for (const cfg of shopConfigs) {
-        let user = await User.findOne({ email: cfg.email });
-        if (!user) {
-            user = await User.create({
-                name: cfg.userName,
-                email: cfg.email,
-                password: `DemoShopPass_${crypto.randomBytes(6).toString("hex")}`,
-                role: "shopkeeper",
-                isDemo: true,
-            });
-        }
-
-        let shop = await Shop.findOne({ owner: user._id, isDemo: true });
-        if (!shop) {
-            shop = await Shop.create({
-                shopName: cfg.shopName,
-                owner: user._id,
-                category: cfg.category,
-                phone: cfg.phone,
-                village: cfg.village,
-                location: {
-                    type: "Point",
-                    coordinates: cfg.coords,
-                },
-                isActive: true,
-                isDemo: true,
-            });
-        }
-        shops.push({ key: cfg.key, shop, user });
-    }
-    return shops;
+    return demoSeedService.ensureDemoShops();
 };
 
 // ── Scenario 1: AI Order Ingestion ───────────────────────────────────
@@ -647,33 +585,13 @@ const runRealtimeNotificationScenario = async ({ sessionId }) => {
 // ── Session Reset Utility ────────────────────────────────────────────
 /**
  * Strictly wipes all records created for this specific demo session.
- * Real non-demo data and other demo sessions remain completely untouched.
+ * Reuses centralized reset infrastructure from demoSeedService.
  */
 const resetSessionScenarioData = async (sessionId) => {
     if (!sessionId) {
         throw new Error("sessionId is required to reset scenario data");
     }
-
-    const sessionFilter = { isDemo: true, demoSessionId: sessionId };
-    const notifFilter = { isDemo: true, "metadata.sessionId": sessionId };
-
-    const [deletedOrders, deletedFarmers, deletedTrips, deletedNotifs] = await Promise.all([
-        Order.deleteMany(sessionFilter),
-        Farmer.deleteMany(sessionFilter),
-        TripBlock.deleteMany(sessionFilter),
-        Notification.deleteMany(notifFilter),
-    ]);
-
-    return {
-        success: true,
-        sessionId,
-        deleted: {
-            orders: deletedOrders.deletedCount,
-            farmers: deletedFarmers.deletedCount,
-            tripBlocks: deletedTrips.deletedCount,
-            notifications: deletedNotifs.deletedCount,
-        },
-    };
+    return demoSeedService.resetSessionData(sessionId);
 };
 
 module.exports = {
