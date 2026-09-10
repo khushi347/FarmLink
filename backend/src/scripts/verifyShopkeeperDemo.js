@@ -29,12 +29,12 @@ const runVerification = async () => {
     console.log("==========================================================");
 
     // 1. Authenticate as Demo Shopkeeper
-    console.log("\n[1/10] Authenticating as Demo Shopkeeper...");
+    console.log("\n[1/10] Authenticating as Demo Shopkeeper (shopkeeper@farmlink.com)...");
     const loginRes = await request("/auth/login", {
         method: "POST",
         body: JSON.stringify({
-            email: "demo.shopkeeper@farmlink.local",
-            password: "Shopkeeper123!",
+            email: "shopkeeper@farmlink.com",
+            password: "FarmLink123",
         }),
     });
 

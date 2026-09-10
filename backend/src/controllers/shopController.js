@@ -38,7 +38,7 @@ const getShopForUser = async (req) => {
     // If shop not found and user is demo shopkeeper, lazily seed demo dataset
     if (!shop) {
         const user = await User.findById(userId);
-        if (user && (user.isDemo || user.email === "demo.shopkeeper@farmlink.local")) {
+        if (user && (user.isDemo || user.email === "shopkeeper@farmlink.com" || user.email === "demo.shopkeeper@farmlink.local")) {
             const seeded = await seedShopkeeperDemo();
             shop = seeded.shop;
         }
@@ -491,7 +491,7 @@ const isUserDemo = async (req) => {
     if (req.user.isDemo || req.user.demo) return true;
     const userId = req.user.userId || req.user.user;
     const user = await User.findById(userId);
-    return Boolean(user?.isDemo || user?.email === "demo.shopkeeper@farmlink.local");
+    return Boolean(user?.isDemo || user?.email === "shopkeeper@farmlink.com" || user?.email === "demo.shopkeeper@farmlink.local");
 };
 
 /**

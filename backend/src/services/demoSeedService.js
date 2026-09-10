@@ -52,14 +52,14 @@ const CORRIDORS = {
 const DEMO_SHOP_PERSONAS = [
     {
         key: "shop_a",
-        userName: "Ramesh Patel (Shop A)",
-        email: "demo.shop.a@farmlink.internal",
-        name: "Ramesh Patel",
-        shopName: "Kisan Krishi Kendra (Shop A)",
-        village: "Rampura Hub",
-        phone: "+91 98000 00101",
+        userName: "FarmLink Shopkeeper",
+        email: "shopkeeper@farmlink.com",
+        name: "FarmLink Shopkeeper",
+        shopName: "Kisan Krishi Kendra (Demo)",
+        village: "Rampura",
+        phone: "+91 98000 00014",
         category: ["Seeds", "Fertilizer", "Pesticides", "Machinery"],
-        coordinates: [77.4100, 23.2580], // [lng, lat]
+        coordinates: [77.4200, 23.2650], // [lng, lat]
     },
     {
         key: "shop_b",
@@ -99,22 +99,27 @@ const FARMER_PROFILES = [
  * Generates a valid 10-digit Indian mobile number with +91 prefix
  * deterministically scoped to session to avoid unique index collisions.
  */
-const getDeterministicPhoneNumber = (index, sessionId = null) => {
+const getDeterministicPhone = (sessionId, index) => {
     if (!sessionId) {
-        // Global dev baseline range: +919826011001 through +919826011099
-        return `+9198260${String(11001 + (index % 900)).padStart(5, "0")}`;
+        return `+91982601100${(index % 9) + 1}`;
     }
-    // Visitor session range: +9198 + 4-digit session hash + 4-digit index
-    const hash = Math.abs(
-        sessionId.split("").reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) | 0, 0)
-    ) % 9000 + 1000;
+    const hash = (
+        parseInt(
+            crypto.createHash("md5").update(sessionId).digest("hex").slice(0, 4),
+            16
+        ) % 9000
+    ) + 1000;
     const num = String(1000 + (index % 9000));
     return `+9198${hash}${num}`;
 };
 
+const getDeterministicPhoneNumber = (index, sessionId = null) => {
+    return getDeterministicPhone(sessionId, index);
+};
+
 /**
  * Ensures demo shopkeeper users and shops exist.
- * Reusable across Module 20 and Module 21.
+ * Reusable across Module 20, Module 21, and Shopkeeper Portal.
  */
 const ensureDemoShops = async () => {
     const shops = [];
@@ -124,27 +129,45 @@ const ensureDemoShops = async () => {
             user = await User.create({
                 name: p.name,
                 email: p.email,
-                password: "DemoPassword123!",
+                password: "FarmLink123",
                 role: "shopkeeper",
                 isDemo: true,
             });
+        } else {
+            user.role = "shopkeeper";
+            user.isDemo = true;
+            await user.save();
         }
 
         let shop = await Shop.findOne({ owner: user._id });
         if (!shop) {
-            shop = await Shop.create({
-                shopName: p.shopName,
-                owner: user._id,
-                category: p.category,
-                phone: p.phone,
-                village: p.village,
-                location: {
-                    type: "Point",
-                    coordinates: p.coordinates,
-                },
-                isDemo: true,
-                isActive: true,
-            });
+            shop = await Shop.findOne({ phone: p.phone });
+            if (shop) {
+                shop.owner = user._id;
+                shop.isDemo = true;
+                shop.shopName = p.shopName;
+                shop.village = p.village;
+                await shop.save();
+            } else {
+                shop = await Shop.create({
+                    shopName: p.shopName,
+                    owner: user._id,
+                    category: p.category,
+                    phone: p.phone,
+                    village: p.village,
+                    location: {
+                        type: "Point",
+                        coordinates: p.coordinates,
+                    },
+                    isDemo: true,
+                    isActive: true,
+                });
+            }
+        } else {
+            shop.shopName = p.shopName;
+            shop.village = p.village;
+            shop.isDemo = true;
+            await shop.save();
         }
         shops.push({ key: p.key, persona: p, user, shop });
     }
@@ -645,6 +668,278 @@ const getDemoDataSummary = async (sessionId = null) => {
     };
 };
 
+/**
+ * Seeds the comprehensive demo dataset for the Shopkeeper Portal (shopkeeper@farmlink.com).
+ * Reusable and aligned with Module 21 architecture.
+ * Canonical Lifecycle States ONLY: CREATED, CLAIMED, COMPLETED.
+ */
+const seedShopkeeperPortalDemo = async ({ userEmail = "shopkeeper@farmlink.com" } = {}) => {
+    // 1. Ensure user
+    let user = await User.findOne({ email: userEmail });
+    if (!user) {
+        user = await User.create({
+            name: "FarmLink Shopkeeper",
+            email: userEmail,
+            password: "FarmLink123",
+            role: "shopkeeper",
+            isDemo: true,
+        });
+    } else {
+        user.role = "shopkeeper";
+        user.isDemo = true;
+        await user.save();
+    }
+
+    // 2. Ensure shop
+    let shop = await Shop.findOne({ owner: user._id });
+    if (!shop) {
+        shop = await Shop.findOne({ phone: "+91 98000 00014" });
+        if (shop) {
+            shop.owner = user._id;
+            shop.isDemo = true;
+            shop.shopName = "Kisan Krishi Kendra (Demo)";
+            shop.village = "Rampura";
+            await shop.save();
+        } else {
+            shop = await Shop.create({
+                shopName: "Kisan Krishi Kendra (Demo)",
+                owner: user._id,
+                category: ["Seeds", "Fertilizer", "Pesticides", "Machinery"],
+                phone: "+91 98000 00014",
+                village: "Rampura",
+                location: {
+                    type: "Point",
+                    coordinates: [77.4200, 23.2650],
+                },
+                isDemo: true,
+                isActive: true,
+            });
+        }
+    } else {
+        shop.shopName = "Kisan Krishi Kendra (Demo)";
+        shop.village = "Rampura";
+        shop.isDemo = true;
+        await shop.save();
+    }
+
+    // 3. Clear existing demo trips, orders, farmers, notifications for clean state
+    // Strictly scoped: isDemo: true and demoSessionId: null
+    await TripBlock.deleteMany({ isDemo: true, demoSessionId: null });
+    await Order.deleteMany({ isDemo: true, demoSessionId: null });
+    await Farmer.deleteMany({ isDemo: true, demoSessionId: null });
+    await Notification.deleteMany({ isDemo: true, user: user._id });
+
+    // 4. Create Demo Farmers
+    const farmerDefs = [
+        { name: "Ramlal Gurjar", village: "Rampura", phone: "+91 98260 11001", lng: 77.4120, lat: 23.2600 },
+        { name: "Shivraj Meena", village: "Bilkisganj", phone: "+91 98260 11002", lng: 77.3820, lat: 23.2180 },
+        { name: "Devendra Singh", village: "Phanda Hub", phone: "+91 98260 11003", lng: 77.4420, lat: 23.2750 },
+        { name: "Kamal Patel", village: "Berasia Corridor", phone: "+91 98260 11004", lng: 77.4560, lat: 23.3220 },
+        { name: "Anandi Bai", village: "Kolar Hub", phone: "+91 98260 11005", lng: 77.4110, lat: 23.2420 },
+        { name: "Mohanlal Rajput", village: "Sehore East", phone: "+91 98260 11006", lng: 77.3500, lat: 23.2000 },
+    ];
+
+    const createdFarmers = {};
+    for (const f of farmerDefs) {
+        let farmer = await Farmer.findOne({ whatsappNumber: f.phone });
+        if (!farmer) {
+            farmer = await Farmer.create({
+                name: f.name,
+                whatsappNumber: f.phone,
+                language: "Hindi",
+                isDemo: true,
+                demoSessionId: null,
+            });
+        }
+        createdFarmers[f.village] = { farmer, lng: f.lng, lat: f.lat };
+    }
+
+    const createDemoOrders = async (itemsCount, village, serviceType, status, assignedShopId) => {
+        const fInfo = createdFarmers[village] || createdFarmers["Rampura"];
+        const orderIds = [];
+        for (let i = 0; i < itemsCount; i++) {
+            const order = await Order.create({
+                farmer: fInfo.farmer._id,
+                serviceType,
+                products: [
+                    {
+                        name: serviceType === "Seeds" ? "Paddy Seeds (Hybrid)" : serviceType === "Fertilizer" ? "Urea Bag 50kg" : "Organic Bio-Pesticide",
+                        quantity: (i + 1) * 25,
+                        unit: "kg",
+                    },
+                ],
+                location: {
+                    type: "Point",
+                    coordinates: [fInfo.lng + (i * 0.002), fInfo.lat + (i * 0.002)],
+                },
+                requestedDate: new Date(Date.now() + 86400000),
+                transcript: `${serviceType} order for ${village} field cluster`,
+                status: status || ORDER_STATUS.GROUPED,
+                assignedShop: assignedShopId || null,
+                isDemo: true,
+                demoSessionId: null,
+            });
+            orderIds.push(order._id);
+        }
+        return orderIds;
+    };
+
+    // 5. Seed Demo TripBlocks (Canonical lifecycle only: CREATED, CLAIMED, COMPLETED)
+    // Trip 1: CREATED Available Trip in Rampura (Trip #245)
+    const trip1Orders = await createDemoOrders(6, "Rampura", "Seeds", ORDER_STATUS.GROUPED, null);
+    const trip1 = await TripBlock.create({
+        orders: trip1Orders,
+        serviceType: "Seeds",
+        assignedShop: null,
+        scheduledDate: new Date(Date.now() + 86400000),
+        status: TRIP_STATUS.CREATED,
+        estimatedEarnings: 850,
+        centerLocation: { type: "Point", coordinates: [77.4080, 23.2580] },
+        isDemo: true,
+        demoSessionId: null,
+    });
+    await Order.updateMany({ _id: { $in: trip1Orders } }, { tripBlock: trip1._id });
+
+    // Trip 2: CREATED Available Trip in Bilkisganj (Trip #248)
+    const trip2Orders = await createDemoOrders(4, "Bilkisganj", "Fertilizer", ORDER_STATUS.GROUPED, null);
+    const trip2 = await TripBlock.create({
+        orders: trip2Orders,
+        serviceType: "Fertilizer",
+        assignedShop: null,
+        scheduledDate: new Date(Date.now() + 90000000),
+        status: TRIP_STATUS.CREATED,
+        estimatedEarnings: 620,
+        centerLocation: { type: "Point", coordinates: [77.3820, 23.2180] },
+        isDemo: true,
+        demoSessionId: null,
+    });
+    await Order.updateMany({ _id: { $in: trip2Orders } }, { tripBlock: trip2._id });
+
+    // Trip 3: CREATED Available Trip in Berasia Corridor (Trip #252)
+    const trip3Orders = await createDemoOrders(8, "Berasia Corridor", "Pesticides", ORDER_STATUS.GROUPED, null);
+    const trip3 = await TripBlock.create({
+        orders: trip3Orders,
+        serviceType: "Pesticides",
+        assignedShop: null,
+        scheduledDate: new Date(Date.now() + 100000000),
+        status: TRIP_STATUS.CREATED,
+        estimatedEarnings: 1200,
+        centerLocation: { type: "Point", coordinates: [77.4560, 23.3220] },
+        isDemo: true,
+        demoSessionId: null,
+    });
+    await Order.updateMany({ _id: { $in: trip3Orders } }, { tripBlock: trip3._id });
+
+    // Trip 4: CLAIMED / Active Trip assigned to Demo Shop (Trip #239)
+    const trip4Orders = await createDemoOrders(5, "Kolar Hub", "Seeds", ORDER_STATUS.CLAIMED, shop._id);
+    const trip4 = await TripBlock.create({
+        orders: trip4Orders,
+        serviceType: "Seeds",
+        assignedShop: shop._id,
+        scheduledDate: new Date(Date.now() + 40000000),
+        status: TRIP_STATUS.CLAIMED,
+        claimedAt: new Date(Date.now() - 3600000),
+        estimatedEarnings: 740,
+        centerLocation: { type: "Point", coordinates: [77.4110, 23.2420] },
+        isDemo: true,
+        demoSessionId: null,
+    });
+    await Order.updateMany({ _id: { $in: trip4Orders } }, { tripBlock: trip4._id });
+
+    // Trip 5: COMPLETED Trip assigned to Demo Shop (Trip #220)
+    const trip5Orders = await createDemoOrders(5, "Sehore East", "Fertilizer", ORDER_STATUS.COMPLETED, shop._id);
+    const trip5 = await TripBlock.create({
+        orders: trip5Orders,
+        serviceType: "Fertilizer",
+        assignedShop: shop._id,
+        scheduledDate: new Date(Date.now() - 86400000),
+        status: TRIP_STATUS.COMPLETED,
+        claimedAt: new Date(Date.now() - 90000000),
+        completedAt: new Date(Date.now() - 86400000),
+        estimatedEarnings: 890,
+        centerLocation: { type: "Point", coordinates: [77.3500, 23.2000] },
+        isDemo: true,
+        demoSessionId: null,
+    });
+    await Order.updateMany({ _id: { $in: trip5Orders } }, { tripBlock: trip5._id });
+
+    // Trip 6: COMPLETED Trip assigned to Demo Shop (Trip #214)
+    const trip6Orders = await createDemoOrders(4, "Phanda Hub", "Seeds", ORDER_STATUS.COMPLETED, shop._id);
+    const trip6 = await TripBlock.create({
+        orders: trip6Orders,
+        serviceType: "Seeds",
+        assignedShop: shop._id,
+        scheduledDate: new Date(Date.now() - 172800000),
+        status: TRIP_STATUS.COMPLETED,
+        claimedAt: new Date(Date.now() - 176400000),
+        completedAt: new Date(Date.now() - 172800000),
+        estimatedEarnings: 580,
+        centerLocation: { type: "Point", coordinates: [77.4420, 23.2750] },
+        isDemo: true,
+        demoSessionId: null,
+    });
+    await Order.updateMany({ _id: { $in: trip6Orders } }, { tripBlock: trip6._id });
+
+    // 6. Seed Demo Notifications
+    const notifications = [
+        {
+            user: user._id,
+            title: "New TripBlock Available",
+            message: "TripBlock in Rampura corridor is open for claiming (6 orders · ₹850 estimated earnings).",
+            type: "TripBlock",
+            channel: "IN_APP",
+            deliveryStatus: "SENT",
+            isRead: false,
+            isDemo: true,
+            isDemoNotification: true,
+            metadata: { tripId: trip1._id, corridor: "Rampura", earnings: 850, isDemoNotification: true },
+        },
+        {
+            user: user._id,
+            title: "Trip Claim Confirmed",
+            message: "TripBlock in Kolar Hub has been successfully locked and assigned to your shop.",
+            type: "TripBlock",
+            channel: "IN_APP",
+            deliveryStatus: "SENT",
+            isRead: true,
+            isDemo: true,
+            isDemoNotification: true,
+            metadata: { tripId: trip4._id, corridor: "Kolar Hub", earnings: 740, isDemoNotification: true },
+        },
+        {
+            user: user._id,
+            title: "Payout Credited",
+            message: "₹890 payout for completed delivery in Sehore East has been cleared.",
+            type: "System",
+            channel: "SYSTEM",
+            deliveryStatus: "SENT",
+            isRead: true,
+            isDemo: true,
+            isDemoNotification: true,
+            metadata: { tripId: trip5._id, earnings: 890, isDemoNotification: true },
+        },
+        {
+            user: user._id,
+            title: "Payout Credited",
+            message: "₹580 payout for completed delivery in Phanda Hub has been cleared.",
+            type: "System",
+            channel: "SYSTEM",
+            deliveryStatus: "SENT",
+            isRead: true,
+            isDemo: true,
+            isDemoNotification: true,
+            metadata: { tripId: trip6._id, earnings: 580, isDemoNotification: true },
+        },
+    ];
+    await Notification.insertMany(notifications);
+
+    return {
+        user,
+        shop,
+        trips: [trip1, trip2, trip3, trip4, trip5, trip6],
+    };
+};
+
 module.exports = {
     CORRIDORS,
     DEMO_SHOP_PERSONAS,
@@ -655,4 +950,5 @@ module.exports = {
     resetSessionData,
     resetGlobalDemoData,
     getDemoDataSummary,
+    seedShopkeeperPortalDemo,
 };
