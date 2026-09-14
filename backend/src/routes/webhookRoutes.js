@@ -1,8 +1,8 @@
-const express=require("express");
-const router=express.Router();
+const express = require("express");
+const router = express.Router();
+const handlewebHook = require("../controllers/handlewebHook");
+const validateTwilioWebhook = require("../middleware/validateTwilioWebhook");
 
-const handlewebHook=require("../controllers/handlewebHook");
+router.post("/twilio", validateTwilioWebhook, handlewebHook);
 
-router.post("/twilio",handlewebHook);
-
-module.exports=router;
+module.exports = router;

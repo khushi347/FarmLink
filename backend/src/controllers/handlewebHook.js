@@ -3,9 +3,11 @@ const { speechToText } = require("../services/speechService");
 const extractOrder = require("../services/geminiService");
 const Farmer = require("../models/Farmer");
 const PendingWhatsAppOrder = require("../models/PendingWhatsAppOrder");
+const ProcessedWebhook = require("../models/ProcessedWebhook");
 const buildOrder = require("../services/orderService");
 const eventBus = require("../events/eventBus");
 const findShopsByService = require("../services/shopService");
+const { logger } = require("../utils/logger");
 
 const normalizePhone = (phone = "") => String(phone).replace(/\D/g, "");
 
@@ -126,30 +128,51 @@ const savePendingOrder = async ({ farmerId, whatsappNumber, source, transcript, 
 };
 
 const handlewebHook = async (req, res) => {
+    const body = req.body || {};
+    const messageSid = body.MessageSid || body.SmsMessageSid || body.SmsSid || null;
+    let webhookRecord = null;
+
+    // Idempotency: Atomic registration with unique messageSid
+    if (messageSid) {
+        try {
+            webhookRecord = await ProcessedWebhook.create({
+                messageSid,
+                status: "PROCESSING",
+                source: "twilio_whatsapp"
+            });
+        } catch (dbErr) {
+            if (dbErr.code === 11000) {
+                // Duplicate webhook arrived!
+                const existing = await ProcessedWebhook.findOne({ messageSid });
+                if (existing && existing.status === "COMPLETED" && existing.responseXml) {
+                    logger.info(`[Webhook Idempotency] Duplicate MessageSid ${messageSid} detected. Returning cached response.`);
+                    res.type("text/xml");
+                    return res.send(existing.responseXml);
+                }
+
+                logger.info(`[Webhook Idempotency] Duplicate MessageSid ${messageSid} currently in-flight. Acknowledging.`);
+                res.type("text/xml");
+                return res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>`);
+            }
+            logger.warn(`[Webhook Idempotency] Error checking ProcessedWebhook: ${dbErr.message}`);
+        }
+    }
+
     try {
-        console.log("1. webhook entered");
-        const body = req.body || {};
         const fromNumber = body.From || body.from || "";
         const location = mapLocation(body);
-        console.log("2. location parsed", location);
 
         if (location) {
-            console.log("3. location branch entered");
-            console.log("4. farmer lookup starting for location message");
             const farmer = await findOrCreateFarmerByWhatsApp(fromNumber);
-            console.log("5. farmer lookup completed", farmer && farmer._id);
-            console.log("6. pending order lookup starting");
             const pending = await PendingWhatsAppOrder.findOne({
                 farmer: farmer._id,
                 status: "WAITING_FOR_LOCATION",
             }).sort({ createdAt: -1 });
-            console.log("7. pending order lookup completed", pending && pending._id);
 
             if (!pending) {
                 throw new Error("No pending WhatsApp order found for this farmer.");
             }
 
-            console.log("8. buildOrder starting for location finalization");
             const order = await buildOrder({
                 farmerId: farmer._id,
                 aiData: {
@@ -160,30 +183,28 @@ const handlewebHook = async (req, res) => {
                 audioUrl: pending.audioUrl,
                 location,
             });
-            console.log("9. buildOrder completed", order && order._id);
 
-            console.log("10. shop lookup starting");
             const shopIds = await findShopsByService(order.serviceType);
-            console.log("11. shop lookup completed", shopIds);
             eventBus.emit("new_order", { order, shopIds });
             eventBus.emit("order_confirmed", { order, farmer, isDemo: order.isDemo });
 
-            console.log("12. pending deletion starting");
             await PendingWhatsAppOrder.deleteOne({ _id: pending._id });
-            console.log("13. pending deletion completed");
 
             const successMessage = getLocalizedMessage(pending.language || "English", "success");
+            const responseXml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n  <Message>${successMessage}</Message>\n</Response>`;
+
+            if (webhookRecord) {
+                await ProcessedWebhook.updateOne(
+                    { _id: webhookRecord._id },
+                    { $set: { status: "COMPLETED", responseXml } }
+                ).catch(() => {});
+            }
+
             res.type("text/xml");
-            return res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${successMessage}</Message>
-</Response>`);
+            return res.send(responseXml);
         }
 
-        console.log("14. text/voice branch entered");
-        console.log("15. farmer lookup starting");
         const farmer = await findOrCreateFarmerByWhatsApp(fromNumber);
-        console.log("16. farmer lookup completed", farmer && farmer._id);
         const fromText = (body.Body || body.body || "").trim();
 
         let transcript = fromText;
@@ -191,20 +212,14 @@ const handlewebHook = async (req, res) => {
         let source = "text";
 
         if (body.MediaContentType0?.startsWith("audio")) {
-            console.log("17. audio branch entered");
             const mediaUrl = body.MediaUrl0 || body.mediaUrl0;
 
             if (!mediaUrl) {
                 throw new Error("WhatsApp audio message missing MediaUrl0");
             }
 
-            console.log("18. audio download starting");
             const filePath = await downloadAudio(mediaUrl, `${Date.now()}.ogg`);
-            console.log("19. audio download completed", filePath);
-
-            console.log("20. speechToText starting");
             transcript = await speechToText(filePath);
-            console.log("21. speechToText completed", transcript);
             audioUrl = mediaUrl;
             source = "voice";
         }
@@ -213,15 +228,12 @@ const handlewebHook = async (req, res) => {
             throw new Error("No message body or transcript found for WhatsApp request");
         }
 
-        console.log("22. Gemini extractOrder starting");
         const aiData = await extractOrder(transcript);
-        console.log("23. Gemini extractOrder completed", aiData);
 
         if (!aiData || !aiData.serviceType || !Array.isArray(aiData.products)) {
             throw new Error("AI did not return a valid order payload");
         }
 
-        console.log("24. pending save starting");
         const pending = await savePendingOrder({
             farmerId: farmer._id,
             whatsappNumber: farmer.whatsappNumber,
@@ -234,7 +246,6 @@ const handlewebHook = async (req, res) => {
             audioUrl,
             language: aiData.language || "English",
         });
-        console.log("25. pending save completed");
 
         eventBus.emit("order_received", {
             farmer,
@@ -243,20 +254,32 @@ const handlewebHook = async (req, res) => {
             isDemo: Boolean(farmer.isDemo),
         });
 
-        console.log("26. sending response");
         const locationMessage = getLocalizedMessage(aiData.language || "English", "location");
+        const responseXml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n  <Message>${locationMessage}</Message>\n</Response>`;
+
+        if (webhookRecord) {
+            await ProcessedWebhook.updateOne(
+                { _id: webhookRecord._id },
+                { $set: { status: "COMPLETED", responseXml } }
+            ).catch(() => {});
+        }
+
         res.type("text/xml");
-        return res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${locationMessage}</Message>
-</Response>`);
+        return res.send(responseXml);
 
     } catch (error) {
-        console.error("WhatsApp webhook error:", error);
-        return res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+        logger.error(`[WhatsApp Webhook] Processing error: ${error.message}`, { error });
+
+        if (webhookRecord) {
+            await ProcessedWebhook.updateOne(
+                { _id: webhookRecord._id },
+                { $set: { status: "FAILED", errorMessage: error.message } }
+            ).catch(() => {});
+        }
+
+        // Return a valid TwiML response with friendly message to avoid infinite Twilio retry loops
+        res.type("text/xml");
+        return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n  <Message>Sorry, we encountered an error processing your request. Please try again.</Message>\n</Response>`);
     }
 };
 

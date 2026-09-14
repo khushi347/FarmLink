@@ -1,17 +1,19 @@
-const express=require("express")
+const express = require("express");
+const { login, refresh, logout } = require("../controllers/authController");
+const { authLimiter } = require("../middleware/rateLimiter");
+const { validate } = require("../middleware/validateRequest");
 
-const{
-    login,
-    refresh,
-    logout
-}=require("../controllers/authController");
+const router = express.Router();
 
-const auth=require("../middleware/authMiddleware")
+const loginValidation = validate({
+    body: {
+        email: { required: true, isEmail: true, message: "A valid email is required" },
+        password: { required: true, minLength: 1, message: "Password is required" }
+    }
+});
 
-const router=express.Router();
+router.post("/login", authLimiter, loginValidation, login);
+router.post("/refresh", refresh);
+router.post("/logout", logout);
 
-router.post("/login",login);
-router.post("/refresh",refresh);
-router.post("/logout",logout);
-
-module.exports=router;
+module.exports = router;

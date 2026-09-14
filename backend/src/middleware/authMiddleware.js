@@ -1,30 +1,46 @@
-const jwt=require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
 
-const auth=async(req,res,next)=>{
-    try{
-        const authHeader=req.headers.authorization;
+const auth = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
 
-        if(!authHeader || !authHeader.startsWith("Bearer ")){
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({
-                message:"Access denied! No token provided"
+                success: false,
+                message: "Access denied! No token provided"
             });
         }
 
-        const token=authHeader.split(" ")[1];
+        const token = authHeader.split(" ")[1];
 
-        const decoded=jwt.verify(
+        const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET
-        )
+        );
 
-        req.user=decoded;
+        // Normalize claims for backward and forward compatibility
+        req.user = {
+            ...decoded,
+            userId: decoded.userId || decoded.user,
+            user: decoded.userId || decoded.user
+        };
 
         next();
-    }catch(error){
-        return res.status(401).json({
-            message:"Invalid or expired token"
-        })
-    }
-}
+    } catch (error) {
+        if (error.name === "TokenExpiredError") {
+            return res.status(401).json({
+                success: false,
+                code: "TOKEN_EXPIRED",
+                message: "Token has expired. Please refresh your session."
+            });
+        }
 
-module.exports=auth;
+        return res.status(401).json({
+            success: false,
+            code: "INVALID_TOKEN",
+            message: "Invalid or expired token"
+        });
+    }
+};
+
+module.exports = auth;

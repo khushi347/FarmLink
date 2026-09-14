@@ -1,8 +1,8 @@
-const express=require("express");
-const router=express.Router();
+const express = require("express");
+const router = express.Router();
+const groupOrderController = require("../controllers/groupingController");
+const { validateObjectIdParam } = require("../middleware/validateRequest");
 
-const groupOrderController=require("../controllers/groupingController");
+router.post("/:orderId", validateObjectIdParam("orderId"), groupOrderController);
 
-router.post("/:orderId",groupOrderController);
-
-module.exports=router;
+module.exports = router;
