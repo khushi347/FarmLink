@@ -3,21 +3,37 @@
  * Handles allowed origins, credential sharing, methods, and security headers.
  */
 
+const { logger } = require("../utils/logger");
+
 const defaultOrigins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000"
 ];
 
+function normalizeOrigin(urlStr) {
+    if (!urlStr || typeof urlStr !== "string") return "";
+    let clean = urlStr.trim().replace(/^["']|["']$/g, "");
+    clean = clean.replace(/\/+$/, "");
+    try {
+        const parsed = new URL(clean);
+        return parsed.origin;
+    } catch {
+        return clean;
+    }
+}
+
 function getAllowedOrigins() {
-    const origins = [...defaultOrigins];
+    const rawList = [...defaultOrigins];
     if (process.env.FRONTEND_URL) {
-        origins.push(process.env.FRONTEND_URL.trim());
+        rawList.push(...process.env.FRONTEND_URL.split(","));
     }
     if (process.env.CORS_ORIGIN) {
-        const customOrigins = process.env.CORS_ORIGIN.split(",").map(o => o.trim());
-        origins.push(...customOrigins);
+        rawList.push(...process.env.CORS_ORIGIN.split(","));
     }
-    return Array.from(new Set(origins));
+    const normalized = rawList
+        .map(o => normalizeOrigin(o))
+        .filter(Boolean);
+    return Array.from(new Set(normalized));
 }
 
 const corsOptions = {
@@ -27,17 +43,19 @@ const corsOptions = {
             return callback(null, true);
         }
 
+        const normalizedOrigin = normalizeOrigin(origin);
         const allowedOrigins = getAllowedOrigins();
+
         const isAllowed = allowedOrigins.some(allowed => {
-            if (allowed === "*") return true;
-            return allowed === origin;
+            return allowed === normalizedOrigin || allowed.toLowerCase() === normalizedOrigin.toLowerCase();
         });
 
         if (isAllowed || process.env.NODE_ENV !== "production") {
             return callback(null, true);
         }
 
-        return callback(new Error(`CORS blocked: Origin ${origin} not permitted`));
+        logger.warn(`[CORS] Blocked origin: ${origin} (Normalized: ${normalizedOrigin}). Allowed origins: ${allowedOrigins.join(", ")}`);
+        return callback(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -48,10 +66,12 @@ const corsOptions = {
         "Idempotency-Key",
         "X-Twilio-Signature"
     ],
-    exposedHeaders: ["RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset", "Retry-After"]
+    exposedHeaders: ["RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset", "Retry-After"],
+    optionsSuccessStatus: 204
 };
 
 module.exports = {
     corsOptions,
-    getAllowedOrigins
+    getAllowedOrigins,
+    normalizeOrigin
 };
