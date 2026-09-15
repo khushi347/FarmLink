@@ -52,10 +52,10 @@ const CORRIDORS = {
 const DEMO_SHOP_PERSONAS = [
     {
         key: "shop_a",
-        userName: "FarmLink Shopkeeper",
+        userName: "Kisan Krishi Kendra",
         email: "shopkeeper@farmlink.com",
-        name: "FarmLink Shopkeeper",
-        shopName: "Kisan Krishi Kendra (Demo)",
+        name: "Kisan Krishi Kendra",
+        shopName: "Kisan Krishi Kendra",
         village: "Rampura",
         phone: "+91 98000 00014",
         category: ["Seeds", "Fertilizer", "Pesticides", "Machinery"],
@@ -63,10 +63,10 @@ const DEMO_SHOP_PERSONAS = [
     },
     {
         key: "shop_b",
-        userName: "Suresh Meena (Shop B)",
+        userName: "Suresh Meena",
         email: "demo.shop.b@farmlink.internal",
         name: "Suresh Meena",
-        shopName: "Green Valley Agro Store (Shop B)",
+        shopName: "Shree Agro Centre",
         village: "Kolar Corridor",
         phone: "+91 98000 00102",
         category: ["Fertilizer", "Machinery", "Seeds", "Pesticides"],
@@ -74,10 +74,10 @@ const DEMO_SHOP_PERSONAS = [
     },
     {
         key: "shop_c",
-        userName: "Anita Sharma (Shop C)",
+        userName: "Anita Sharma",
         email: "demo.shop.c@farmlink.internal",
         name: "Anita Sharma",
-        shopName: "Mohan Agro Mart (Shop C)",
+        shopName: "Krishi Seva Kendra",
         village: "Bhopal South",
         phone: "+91 98000 00103",
         category: ["Pesticides", "Tractor Rental", "Water Tanker", "Seeds"],
@@ -697,12 +697,12 @@ const seedShopkeeperPortalDemo = async ({ userEmail = "shopkeeper@farmlink.com" 
         if (shop) {
             shop.owner = user._id;
             shop.isDemo = true;
-            shop.shopName = "Kisan Krishi Kendra (Demo)";
+            shop.shopName = "Kisan Krishi Kendra";
             shop.village = "Rampura";
             await shop.save();
         } else {
             shop = await Shop.create({
-                shopName: "Kisan Krishi Kendra (Demo)",
+                shopName: "Kisan Krishi Kendra",
                 owner: user._id,
                 category: ["Seeds", "Fertilizer", "Pesticides", "Machinery"],
                 phone: "+91 98000 00014",
@@ -716,7 +716,7 @@ const seedShopkeeperPortalDemo = async ({ userEmail = "shopkeeper@farmlink.com" 
             });
         }
     } else {
-        shop.shopName = "Kisan Krishi Kendra (Demo)";
+        shop.shopName = "Kisan Krishi Kendra";
         shop.village = "Rampura";
         shop.isDemo = true;
         await shop.save();

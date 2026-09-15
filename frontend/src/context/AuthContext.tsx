@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isLoading || !pathname) return;
 
     // Public routes that unauthenticated users can access
-    const isPublicRoute = pathname === "/login" || pathname.startsWith("/demo");
+    const isPublicRoute = pathname === "/" || pathname === "/login" || pathname.startsWith("/demo");
     // Routes that authenticated users should be redirected away from (e.g. login page)
     const isAuthOnlyRoute = pathname === "/login";
 
@@ -130,12 +130,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user?.role === "shopkeeper") {
         router.push("/shopkeeper");
       } else {
-        router.push("/");
+        router.push("/admin");
       }
-    } else if (token && pathname === "/" && user?.role === "shopkeeper") {
+    } else if (token && pathname === "/admin" && user && user.role !== "admin") {
       router.push("/shopkeeper");
     } else if (token && pathname === "/shopkeeper" && user && user.role !== "shopkeeper") {
-      router.push("/");
+      router.push("/admin");
     }
   }, [token, pathname, isLoading, router, user]);
 
@@ -149,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.user.role === "shopkeeper") {
         router.push("/shopkeeper");
       } else {
-        router.push("/");
+        router.push("/admin");
       }
     } catch (err) {
       if (err instanceof ApiError) {

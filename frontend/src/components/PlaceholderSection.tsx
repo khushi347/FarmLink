@@ -160,7 +160,7 @@ export default function PlaceholderSection({
           {[
             { 
               from: "Sonipat Farm Cluster", 
-              to: "Green Valley Supply", 
+              to: "Shree Agro Centre", 
               tripCode: "TB-204", 
               cargo: "420 kg (Cauliflower & Greens)", 
               time: "Shop Claim Window • Open 45m",
@@ -168,7 +168,7 @@ export default function PlaceholderSection({
             },
             { 
               from: "Panipat Rice Fields", 
-              to: "Mohan Agro Mart", 
+              to: "Krishi Seva Kendra", 
               tripCode: "TB-188", 
               cargo: "600 kg (Premium Basmati)", 
               time: "Claimed by Shop • In Transit",

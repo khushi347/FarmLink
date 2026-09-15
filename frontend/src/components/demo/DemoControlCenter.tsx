@@ -450,7 +450,7 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                                 </h3>
                             </div>
                             <p className="text-xs text-[#5a5f6b] mt-1">
-                                Shop A, Shop B, Shop C Simultaneous Claim ➔ 1 Winner (200 OK) ➔ 2 Conflicts (409 Conflict) ➔ Status: CLAIMED
+                                Partner Shops Simultaneous Claim ➔ 1 Winner (200 OK) ➔ 2 Conflicts (409 Conflict) ➔ Status: CLAIMED
                             </p>
                         </div>
                         <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-[#faf8f5] text-[#8c8e96] border border-[#e5e1da]">
@@ -461,18 +461,18 @@ export default function DemoControlCenter({ sessionId, onRefreshMap }: DemoContr
                     {/* 3 Shop Cards Preview */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="p-3 rounded-xl bg-[#faf8f5] border border-[#e5e1da]">
-                            <p className="text-[10px] font-bold text-[#c26d40] uppercase">Retail Shop A</p>
+                            <p className="text-[10px] font-bold text-[#c26d40] uppercase">Partner Shop</p>
                             <p className="text-xs font-bold text-[#1c1e24] mt-0.5">Kisan Krishi Kendra</p>
                             <p className="text-[10px] text-[#8c8e96]">Rampura Hub</p>
                         </div>
                         <div className="p-3 rounded-xl bg-[#faf8f5] border border-[#e5e1da]">
-                            <p className="text-[10px] font-bold text-[#234e72] uppercase">Retail Shop B</p>
-                            <p className="text-xs font-bold text-[#1c1e24] mt-0.5">Green Valley Agro Store</p>
+                            <p className="text-[10px] font-bold text-[#234e72] uppercase">Partner Shop</p>
+                            <p className="text-xs font-bold text-[#1c1e24] mt-0.5">Shree Agro Centre</p>
                             <p className="text-[10px] text-[#8c8e96]">Kolar Corridor</p>
                         </div>
                         <div className="p-3 rounded-xl bg-[#faf8f5] border border-[#e5e1da]">
-                            <p className="text-[10px] font-bold text-[#1f6e48] uppercase">Retail Shop C</p>
-                            <p className="text-xs font-bold text-[#1c1e24] mt-0.5">Mohan Agro Mart</p>
+                            <p className="text-[10px] font-bold text-[#1f6e48] uppercase">Partner Shop</p>
+                            <p className="text-xs font-bold text-[#1c1e24] mt-0.5">Krishi Seva Kendra</p>
                             <p className="text-[10px] text-[#8c8e96]">Bhopal South</p>
                         </div>
                     </div>

@@ -54,7 +54,7 @@ const runVerification = async () => {
     console.log("\n[3/10] Verifying GET /api/shop/me...");
     const meRes = await request("/shop/me", {}, token);
     assert.strictEqual(meRes.status, 200);
-    assert.strictEqual(meRes.data.data.shop.shopName, "Kisan Krishi Kendra (Demo)");
+    assert.strictEqual(meRes.data.data.shop.shopName, "Kisan Krishi Kendra");
     assert.strictEqual(meRes.data.data.shop.village, "Rampura");
     assert.strictEqual(meRes.data.data.shop.isDemo, true);
     assert.strictEqual(meRes.data.data.isDemo, true);

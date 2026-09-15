@@ -30,8 +30,20 @@ export class ApiError extends Error {
   }
 }
 
+let isRefreshing = false;
+let refreshSubscribers: ((newToken: string) => void)[] = [];
+
+function onTokenRefreshed(newToken: string) {
+  refreshSubscribers.forEach((callback) => callback(newToken));
+  refreshSubscribers = [];
+}
+
+function addRefreshSubscriber(callback: (newToken: string) => void) {
+  refreshSubscribers.push(callback);
+}
+
 /**
- * Common request wrapper.
+ * Common request wrapper with automatic 401 refresh retry.
  */
 async function request<T>(
   endpoint: string,
@@ -54,6 +66,60 @@ async function request<T>(
     headers,
     credentials: "include", // Ensure refresh token cookies are sent and stored
   });
+
+  if (response.status === 401 && !endpoint.startsWith("/auth/")) {
+    // Attempt automatic token refresh
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+        if (refreshRes.ok) {
+          const refreshData = (await refreshRes.json()) as RefreshResponse;
+          const newToken = refreshData.accessToken;
+          isRefreshing = false;
+          onTokenRefreshed(newToken);
+          // Retry original request with new token
+          headers.set("Authorization", `Bearer ${newToken}`);
+          const retryRes = await fetch(url, {
+            ...options,
+            headers,
+            credentials: "include",
+          });
+          if (retryRes.ok) {
+            return retryRes.json() as Promise<T>;
+          }
+        }
+      } catch {
+        isRefreshing = false;
+      }
+      isRefreshing = false;
+    } else {
+      // Wait for ongoing refresh to finish and retry
+      return new Promise<T>((resolve, reject) => {
+        addRefreshSubscriber(async (newToken) => {
+          try {
+            headers.set("Authorization", `Bearer ${newToken}`);
+            const retryRes = await fetch(url, {
+              ...options,
+              headers,
+              credentials: "include",
+            });
+            if (retryRes.ok) {
+              resolve(retryRes.json() as Promise<T>);
+            } else {
+              reject(new ApiError(retryRes.statusText, retryRes.status));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+    }
+  }
 
   if (!response.ok) {
     let errorMessage = "An error occurred";

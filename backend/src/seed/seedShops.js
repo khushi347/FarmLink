@@ -29,7 +29,7 @@ const seedShops = async () => {
                 }
             },
             {
-                shopName: "Green Valley Agro Store",
+                shopName: "Shree Agro Centre",
                 owner: shopkeepers[1]?._id || shopkeepers[0]._id,
                 category: ["Fertilizer", "Machinery", "Seeds"],
                 phone: "+91 94162 54321",
@@ -40,7 +40,7 @@ const seedShops = async () => {
                 }
             },
             {
-                shopName: "Mohan Agro Mart",
+                shopName: "Krishi Seva Kendra",
                 owner: shopkeepers[2]?._id || shopkeepers[0]._id,
                 category: ["Pesticides", "Tractor Rental", "Water Tanker"],
                 phone: "+91 97291 98765",

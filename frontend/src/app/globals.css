@@ -367,7 +367,7 @@ button, input, select, textarea { font: inherit; }
   color: #c26d40 !important;
 }
 
-.farmlink-map-container .leaflet-control-attribution {
+.farmlink-control-attribution {
   background: rgba(250, 248, 245, 0.85) !important;
   color: #8c8e96 !important;
   font-size: 9px !important;
@@ -375,4 +375,140 @@ button, input, select, textarea { font: inherit; }
   border-top-left-radius: 6px;
   backdrop-filter: blur(4px);
 }
+
+/* ─── CINEMATIC LANDING ANIMATIONS & EFFECTS ────────────── */
+@keyframes heroPan {
+  0% { transform: scale(1.04) translate(0px, 0px); }
+  50% { transform: scale(1.08) translate(-10px, -6px); }
+  100% { transform: scale(1.04) translate(0px, 0px); }
+}
+
+@keyframes mistFloat {
+  0%, 100% { transform: translateX(0) translateY(0); opacity: 0.35; }
+  50% { transform: translateX(30px) translateY(-15px); opacity: 0.55; }
+}
+
+@keyframes routeFlow {
+  from { stroke-dashoffset: 200; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.35); opacity: 0.2; }
+}
+
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes nodeConnect {
+  0% { stroke-dasharray: 4 6; stroke-dashoffset: 40; }
+  100% { stroke-dasharray: 4 6; stroke-dashoffset: 0; }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-pan {
+  animation: heroPan 30s ease-in-out infinite;
+}
+
+.animate-mist {
+  animation: mistFloat 18s ease-in-out infinite;
+}
+
+.animate-dash-flow {
+  stroke-dasharray: 8 6;
+  animation: routeFlow 20s linear infinite;
+}
+
+.animate-dash-fast {
+  stroke-dasharray: 6 4;
+  animation: routeFlow 6s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float-gentle {
+  animation: floatGentle 4s ease-in-out infinite;
+}
+
+.animate-fade-up {
+  animation: fadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Glassmorphic Nav & Surface styles */
+.glass-nav-scrolled {
+  background: rgba(250, 248, 245, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(229, 225, 218, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(28, 30, 36, 0.05);
+}
+
+.glass-nav-transparent {
+  background: linear-gradient(180deg, rgba(17, 19, 23, 0.7) 0%, rgba(17, 19, 23, 0) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.editorial-card {
+  background: #ffffff;
+  border: 1px solid #e5e1da;
+  border-radius: 16px;
+  box-shadow: 0 2px 14px rgba(28, 30, 36, 0.04);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.editorial-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(28, 30, 36, 0.08);
+  border-color: #d6d1c7;
+}
+
+.editorial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-hero-pan,
+  .animate-mist,
+  .animate-dash-flow,
+  .animate-dash-fast,
+  .animate-pulse-glow,
+  .animate-float-gentle,
+  .live-dot {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
 

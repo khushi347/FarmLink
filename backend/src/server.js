@@ -47,6 +47,31 @@ const startServer = async () => {
             logger.info(`Server is running securely on port ${PORT}`);
             logger.debug("Active environment configuration loaded", getSanitizedConfig());
         });
+
+        // Graceful shutdown
+        const handleShutdown = async (signal) => {
+            logger.info(`[SHUTDOWN] Received ${signal}. Closing server gracefully...`);
+            server.close(async () => {
+                logger.info("[SHUTDOWN] HTTP & WebSocket server closed.");
+                try {
+                    const mongoose = require("mongoose");
+                    await mongoose.connection.close();
+                    logger.info("[SHUTDOWN] Database connection closed.");
+                } catch (e) {
+                    logger.error("[SHUTDOWN] Error closing DB connection", { error: e.message });
+                }
+                process.exit(0);
+            });
+
+            // Force close after 10s if graceful close hangs
+            setTimeout(() => {
+                logger.error("[SHUTDOWN] Forced shutdown after timeout.");
+                process.exit(1);
+            }, 10000).unref();
+        };
+
+        process.on("SIGTERM", () => handleShutdown("SIGTERM"));
+        process.on("SIGINT", () => handleShutdown("SIGINT"));
     } catch (error) {
         logger.error("Failed to start server", { error: error.message, stack: error.stack });
         process.exit(1);
