@@ -25,7 +25,19 @@ interface RealtimeContextValue extends RealtimeConnectionState {
 
 const RealtimeContext = createContext<RealtimeContextValue | undefined>(undefined);
 
-const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+export function getSocketUrl(): string {
+  const envSocket = process.env.NEXT_PUBLIC_SOCKET_URL?.trim();
+  if (envSocket) {
+    return envSocket.replace(/\/+$/, "").replace(/\/api$/, "");
+  }
+  const envApi = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (envApi) {
+    return envApi.replace(/\/+$/, "").replace(/\/api$/, "");
+  }
+  return "http://localhost:5000";
+}
+
+const socketUrl = getSocketUrl();
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();

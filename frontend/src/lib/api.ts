@@ -3,7 +3,23 @@
  * Provides custom fetch wrapper with cookie credentials and token headers.
  */
 
-const API_BASE = "/api";
+/**
+ * Normalizes the backend API base URL from environment variables.
+ * Handles both root URLs and URLs ending in /api, with or without trailing slashes.
+ */
+export function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!envUrl) {
+    return "http://localhost:5000/api";
+  }
+  const cleanUrl = envUrl.replace(/\/+$/, "");
+  if (cleanUrl.endsWith("/api")) {
+    return cleanUrl;
+  }
+  return `${cleanUrl}/api`;
+}
+
+export const API_BASE = getApiBaseUrl();
 
 export interface User {
   id: string;
@@ -50,7 +66,8 @@ async function request<T>(
   options: RequestInit = {},
   token?: string
 ): Promise<T> {
-  const url = `${API_BASE}${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE}${cleanEndpoint}`;
   
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {

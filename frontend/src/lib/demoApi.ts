@@ -35,10 +35,13 @@ export interface DemoResetResponse {
     deleted?: { orders: number; farmers: number; tripBlocks: number };
 }
 
-const base = "/api/demo";
+import { getApiBaseUrl } from "./api";
+
+const DEMO_BASE = `${getApiBaseUrl()}/demo`;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const res = await fetch(`${base}${path}`, {
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    const res = await fetch(`${DEMO_BASE}${cleanPath}`, {
         ...options,
         headers: { "Content-Type": "application/json", ...options.headers },
     });

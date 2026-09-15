@@ -31,8 +31,9 @@ export type DemoConnectionStatus =
     | "error"
     | "disconnected";
 
-const socketUrl =
-    process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+import { getSocketUrl } from "@/context/RealtimeContext";
+
+const socketUrl = getSocketUrl();
 
 export function useDemoRealtime(sessionId: string | null) {
     const socketRef = useRef<Socket | null>(null);
